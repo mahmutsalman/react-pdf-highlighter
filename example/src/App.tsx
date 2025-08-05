@@ -19,7 +19,9 @@ import type {
 
 import { Sidebar } from "./Sidebar";
 import { Spinner } from "./Spinner";
+import { PdfLibrary } from "./components/PdfLibrary";
 import { testHighlights as _testHighlights } from "./test-highlights";
+import { databaseService, type PdfRecord } from "./services/database";
 
 import "./style/App.css";
 import "../../dist/style.css";
@@ -53,10 +55,24 @@ export function App() {
   const searchParams = new URLSearchParams(document.location.search);
   const initialUrl = searchParams.get("url") || PRIMARY_PDF_URL;
 
+  const [appState, setAppState] = useState<'viewer' | 'library'>('viewer');
   const [url, setUrl] = useState(initialUrl);
+  const [currentPdfId, setCurrentPdfId] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Array<IHighlight>>(
     testHighlights[initialUrl] ? [...testHighlights[initialUrl]] : [],
   );
+
+  useEffect(() => {
+    initializeDatabase();
+  }, []);
+
+  const initializeDatabase = async () => {
+    try {
+      await databaseService.initialize();
+    } catch (error) {
+      console.error("Failed to initialize database:", error);
+    }
+  };
 
   const resetHighlights = () => {
     setHighlights([]);
@@ -81,14 +97,51 @@ export function App() {
       });
       
       if (filePath) {
-        const fileData = await readFile(filePath);
-        const blob = new Blob([fileData], { type: "application/pdf" });
-        const fileUrl = URL.createObjectURL(blob);
-        setUrl(fileUrl);
-        setHighlights([]);
+        await openPdfFromPath(filePath);
       }
     } catch (error) {
       console.error("Error opening file:", error);
+    }
+  };
+
+  const openPdfFromPath = async (filePath: string) => {
+    try {
+      const fileData = await readFile(filePath);
+      const blob = new Blob([fileData], { type: "application/pdf" });
+      const fileUrl = URL.createObjectURL(blob);
+      
+      // Extract filename from path
+      const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
+      
+      // Check if PDF already exists in database
+      let pdfRecord = await databaseService.getPdfByPath(filePath);
+      
+      if (!pdfRecord) {
+        // Add new PDF to database
+        const pdfId = await databaseService.addPdf(fileName, filePath);
+        pdfRecord = { id: pdfId, name: fileName, path: filePath, date_added: new Date().toISOString(), last_opened: new Date().toISOString() };
+      } else {
+        // Update last opened time
+        await databaseService.updatePdfLastOpened(pdfRecord.id);
+      }
+      
+      // Load existing highlights for this PDF
+      const existingHighlights = await databaseService.getHighlightsForPdf(pdfRecord.id);
+      
+      setUrl(fileUrl);
+      setCurrentPdfId(pdfRecord.id);
+      setHighlights(existingHighlights);
+      setAppState('viewer');
+    } catch (error) {
+      console.error("Error opening PDF:", error);
+      
+      // If file doesn't exist, try to find by name
+      const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
+      const pdfsByName = await databaseService.getPdfByName(fileName);
+      
+      if (pdfsByName.length > 0) {
+        alert(`PDF file "${fileName}" was moved or deleted. Please locate it manually.`);
+      }
     }
   };
 
@@ -116,20 +169,41 @@ export function App() {
     return highlights.find((highlight) => highlight.id === id);
   };
 
-  const addHighlight = (highlight: NewHighlight) => {
+  const addHighlight = async (highlight: NewHighlight) => {
     console.log("Saving highlight", highlight);
+    const newHighlight = { ...highlight, id: getNextId() };
+    
+    // Save to database if we have a current PDF
+    if (currentPdfId) {
+      try {
+        await databaseService.addHighlight(currentPdfId, newHighlight);
+      } catch (error) {
+        console.error("Error saving highlight to database:", error);
+      }
+    }
+    
     setHighlights((prevHighlights) => [
-      { ...highlight, id: getNextId() },
+      newHighlight,
       ...prevHighlights,
     ]);
   };
 
-  const updateHighlight = (
+  const updateHighlight = async (
     highlightId: string,
     position: Partial<ScaledPosition>,
     content: Partial<Content>,
   ) => {
     console.log("Updating highlight", highlightId, position, content);
+    
+    // Update in database
+    if (currentPdfId) {
+      try {
+        await databaseService.updateHighlight(highlightId, position, content);
+      } catch (error) {
+        console.error("Error updating highlight in database:", error);
+      }
+    }
+    
     setHighlights((prevHighlights) =>
       prevHighlights.map((h) => {
         const {
@@ -150,6 +224,34 @@ export function App() {
     );
   };
 
+  // Navigation functions
+  const showAllPdfs = () => {
+    setAppState('library');
+  };
+
+  const backToViewer = () => {
+    setAppState('viewer');
+  };
+
+  const openPdfFromLibrary = async (pdf: PdfRecord) => {
+    try {
+      await openPdfFromPath(pdf.path);
+    } catch (error) {
+      // If file doesn't exist at the stored path, show error and ask user to locate it
+      console.error("Error opening PDF from library:", error);
+      alert(`PDF file "${pdf.name}" could not be found at "${pdf.path}". Please locate the file manually.`);
+    }
+  };
+
+  if (appState === 'library') {
+    return (
+      <PdfLibrary
+        onOpenPdf={openPdfFromLibrary}
+        onBackToViewer={backToViewer}
+      />
+    );
+  }
+
   return (
     <div className="App" style={{ display: "flex", height: "100vh" }}>
       <Sidebar
@@ -157,6 +259,7 @@ export function App() {
         resetHighlights={resetHighlights}
         toggleDocument={toggleDocument}
         openLocalFile={openLocalFile}
+        showAllPdfs={showAllPdfs}
       />
       <div
         style={{

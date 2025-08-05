@@ -9,3 +9,5 @@ types
 /playwright/.cache/
 .idea/
 localResources/
+*.db
+*.db-journal
