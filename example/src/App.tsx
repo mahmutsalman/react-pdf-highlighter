@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
 
 import {
   AreaHighlight,
@@ -67,6 +69,29 @@ export function App() {
     setHighlights(testHighlights[newUrl] ? [...testHighlights[newUrl]] : []);
   };
 
+  const openLocalFile = async () => {
+    try {
+      const filePath = await open({
+        filters: [
+          {
+            name: "PDF Files",
+            extensions: ["pdf"]
+          }
+        ]
+      });
+      
+      if (filePath) {
+        const fileData = await readFile(filePath);
+        const blob = new Blob([fileData], { type: "application/pdf" });
+        const fileUrl = URL.createObjectURL(blob);
+        setUrl(fileUrl);
+        setHighlights([]);
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+    }
+  };
+
   const scrollViewerTo = useRef((highlight: IHighlight) => {});
 
   const scrollToHighlightFromHash = useCallback(() => {
@@ -131,6 +156,7 @@ export function App() {
         highlights={highlights}
         resetHighlights={resetHighlights}
         toggleDocument={toggleDocument}
+        openLocalFile={openLocalFile}
       />
       <div
         style={{

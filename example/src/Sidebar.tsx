@@ -4,6 +4,7 @@ interface Props {
   highlights: Array<IHighlight>;
   resetHighlights: () => void;
   toggleDocument: () => void;
+  openLocalFile: () => void;
 }
 
 const updateHash = (highlight: IHighlight) => {
@@ -16,6 +17,7 @@ export function Sidebar({
   highlights,
   toggleDocument,
   resetHighlights,
+  openLocalFile,
 }: Props) {
   return (
     <div className="sidebar" style={{ width: "25vw" }}>
@@ -71,8 +73,11 @@ export function Sidebar({
         ))}
       </ul>
       <div style={{ padding: "1rem" }}>
-        <button type="button" onClick={toggleDocument}>
-          Toggle PDF document
+        <button type="button" onClick={openLocalFile} style={{ marginBottom: "0.5rem", width: "100%" }}>
+          Open Local PDF File
+        </button>
+        <button type="button" onClick={toggleDocument} style={{ width: "100%" }}>
+          Toggle Sample Document
         </button>
       </div>
       {highlights.length > 0 ? (

@@ -7,3 +7,5 @@ types
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+.idea/
+localResources/
