@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readFile } from "@tauri-apps/plugin-fs";
+import { readFile, exists } from "@tauri-apps/plugin-fs";
 
 import {
   AreaHighlight,
@@ -30,10 +30,14 @@ const testHighlights: Record<string, Array<IHighlight>> = _testHighlights;
 
 const getNextId = () => String(Math.random()).slice(2);
 
-const parseIdFromHash = () =>
-  document.location.hash.slice("#highlight-".length);
+const parseIdFromHash = () => {
+  const hash = document.location.hash.slice("#highlight-".length);
+  console.log("🔗 Parsing ID from hash:", document.location.hash, "→", hash);
+  return hash;
+};
 
 const resetHash = () => {
+  console.log("🔄 Resetting hash");
   document.location.hash = "";
 };
 
@@ -97,50 +101,106 @@ export function App() {
       });
       
       if (filePath) {
-        await openPdfFromPath(filePath);
+        console.log("📂 User selected file:", filePath);
+        
+        // Normalize the path - Tauri dialog already returns absolute paths
+        // but we'll ensure consistency by trimming any whitespace
+        const normalizedPath = filePath.trim();
+        console.log("📂 Normalized path:", normalizedPath);
+        
+        await openPdfFromPath(normalizedPath);
       }
     } catch (error) {
-      console.error("Error opening file:", error);
+      console.error("❌ Error in openLocalFile:", error);
     }
   };
 
   const openPdfFromPath = async (filePath: string) => {
+    console.log("🔍 Attempting to open PDF from path:", filePath);
+    
     try {
+      // First, check if the file exists
+      console.log("📁 Checking if file exists...");
+      const fileExists = await exists(filePath);
+      console.log("📁 File exists:", fileExists);
+      
+      if (!fileExists) {
+        console.warn("❌ File does not exist at path:", filePath);
+        const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
+        throw new Error(`File not found: ${fileName}`);
+      }
+      
+      // Try to read the file
+      console.log("📖 Reading file data...");
       const fileData = await readFile(filePath);
+      console.log("📖 File data loaded, size:", fileData.length, "bytes");
+      
       const blob = new Blob([fileData], { type: "application/pdf" });
       const fileUrl = URL.createObjectURL(blob);
+      console.log("🔗 Created blob URL:", fileUrl);
       
       // Extract filename from path
       const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
+      console.log("📝 Extracted filename:", fileName);
       
       // Check if PDF already exists in database
+      console.log("🗄️ Checking database for existing PDF record...");
       let pdfRecord = await databaseService.getPdfByPath(filePath);
       
       if (!pdfRecord) {
-        // Add new PDF to database
+        console.log("➕ Adding new PDF to database...");
         const pdfId = await databaseService.addPdf(fileName, filePath);
         pdfRecord = { id: pdfId, name: fileName, path: filePath, date_added: new Date().toISOString(), last_opened: new Date().toISOString() };
+        console.log("✅ PDF added to database with ID:", pdfId);
       } else {
-        // Update last opened time
+        console.log("🔄 Updating last opened time for existing PDF...");
         await databaseService.updatePdfLastOpened(pdfRecord.id);
+        console.log("✅ Last opened time updated");
       }
       
       // Load existing highlights for this PDF
+      console.log("🎨 Loading existing highlights...");
       const existingHighlights = await databaseService.getHighlightsForPdf(pdfRecord.id);
+      console.log("🎨 Loaded", existingHighlights.length, "highlights");
       
+      // Update application state
       setUrl(fileUrl);
       setCurrentPdfId(pdfRecord.id);
       setHighlights(existingHighlights);
       setAppState('viewer');
+      console.log("✅ PDF opened successfully");
+      
     } catch (error) {
-      console.error("Error opening PDF:", error);
+      console.error("❌ Error opening PDF:", error);
       
-      // If file doesn't exist, try to find by name
+      // Enhanced error handling
       const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
-      const pdfsByName = await databaseService.getPdfByName(fileName);
+      let errorMessage = `Failed to open PDF: ${fileName}`;
       
-      if (pdfsByName.length > 0) {
-        alert(`PDF file "${fileName}" was moved or deleted. Please locate it manually.`);
+      if (error instanceof Error) {
+        if (error.message.includes("File not found") || error.message.includes("No such file")) {
+          errorMessage = `PDF file "${fileName}" was not found at the expected location:\n\n${filePath}\n\nThe file may have been moved, renamed, or deleted.`;
+        } else if (error.message.includes("Permission denied") || error.message.includes("Access denied")) {
+          errorMessage = `Permission denied when trying to access PDF file:\n\n${fileName}\n\nPlease check that the application has permission to read this file.`;
+        } else if (error.message.includes("sql")) {
+          errorMessage = `Database error while processing PDF:\n\n${error.message}`;
+        } else {
+          errorMessage = `Error opening PDF "${fileName}":\n\n${error.message}`;
+        }
+      }
+      
+      console.error("💬 Showing error to user:", errorMessage);
+      alert(errorMessage);
+      
+      // Try to find by name as fallback
+      try {
+        console.log("🔍 Searching for PDFs with same filename...");
+        const pdfsByName = await databaseService.getPdfByName(fileName);
+        if (pdfsByName.length > 0) {
+          console.log("📚 Found", pdfsByName.length, "PDFs with same name in database");
+        }
+      } catch (dbError) {
+        console.error("❌ Error searching database:", dbError);
       }
     }
   };
@@ -148,11 +208,28 @@ export function App() {
   const scrollViewerTo = useRef((highlight: IHighlight) => {});
 
   const scrollToHighlightFromHash = useCallback(() => {
-    const highlight = getHighlightById(parseIdFromHash());
-    if (highlight) {
-      scrollViewerTo.current(highlight);
+    console.log("🎯 Attempting to scroll to highlight from hash");
+    const highlightId = parseIdFromHash();
+    console.log("🎯 Looking for highlight with ID:", highlightId);
+    
+    if (!highlightId) {
+      console.log("❌ No highlight ID in hash");
+      return;
     }
-  }, []);
+    
+    const highlight = getHighlightById(highlightId);
+    console.log("🎯 Found highlight:", highlight ? `Yes (${highlight.comment?.text})` : "No");
+    
+    if (highlight) {
+      console.log("🎯 Scrolling to highlight, scrollViewerTo exists:", typeof scrollViewerTo.current === 'function');
+      if (typeof scrollViewerTo.current === 'function') {
+        scrollViewerTo.current(highlight);
+        console.log("✅ Scroll function called");
+      } else {
+        console.log("❌ scrollViewerTo.current is not a function");
+      }
+    }
+  }, [highlights]);
 
   useEffect(() => {
     window.addEventListener("hashchange", scrollToHighlightFromHash, false);
@@ -166,7 +243,10 @@ export function App() {
   }, [scrollToHighlightFromHash]);
 
   const getHighlightById = (id: string) => {
-    return highlights.find((highlight) => highlight.id === id);
+    console.log("🔍 Searching for highlight with ID:", id, "in", highlights.length, "highlights");
+    const found = highlights.find((highlight) => highlight.id === id);
+    console.log("🔍 Search result:", found ? `Found: ${found.comment?.text}` : "Not found");
+    return found;
   };
 
   const addHighlight = async (highlight: NewHighlight) => {
@@ -234,12 +314,13 @@ export function App() {
   };
 
   const openPdfFromLibrary = async (pdf: PdfRecord) => {
+    console.log("📚 Opening PDF from library:", pdf.name, "at path:", pdf.path);
     try {
       await openPdfFromPath(pdf.path);
     } catch (error) {
-      // If file doesn't exist at the stored path, show error and ask user to locate it
-      console.error("Error opening PDF from library:", error);
-      alert(`PDF file "${pdf.name}" could not be found at "${pdf.path}". Please locate the file manually.`);
+      console.error("❌ Error opening PDF from library:", error);
+      // The openPdfFromPath function already handles errors and shows appropriate messages
+      // No need to show additional alert here
     }
   };
 
@@ -275,6 +356,7 @@ export function App() {
               enableAreaSelection={(event) => event.altKey}
               onScrollChange={resetHash}
               scrollRef={(scrollTo) => {
+                console.log("📜 PDF viewer scroll function registered");
                 scrollViewerTo.current = scrollTo;
                 scrollToHighlightFromHash();
               }}

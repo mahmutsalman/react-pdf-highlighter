@@ -9,7 +9,9 @@ interface Props {
 }
 
 const updateHash = (highlight: IHighlight) => {
+  console.log("🔗 Updating hash for highlight:", highlight.id, highlight.comment?.text);
   document.location.hash = `highlight-${highlight.id}`;
+  console.log("🔗 Hash updated to:", document.location.hash);
 };
 
 declare const APP_VERSION: string;
