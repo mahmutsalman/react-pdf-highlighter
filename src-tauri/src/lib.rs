@@ -33,6 +33,71 @@ pub fn run() {
       );",
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 3,
+      description: "create_tags_table",
+      sql: "CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );",
+      kind: MigrationKind::Up,
+    },
+    Migration {
+      version: 4,
+      description: "create_highlight_tags_table",
+      sql: "CREATE TABLE IF NOT EXISTS highlight_tags (
+        highlight_id TEXT NOT NULL,
+        tag_id INTEGER NOT NULL,
+        PRIMARY KEY (highlight_id, tag_id),
+        FOREIGN KEY (highlight_id) REFERENCES highlights(highlight_id) ON DELETE CASCADE,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+      );",
+      kind: MigrationKind::Up,
+    },
+    Migration {
+      version: 5,
+      description: "add_unique_constraint_to_highlight_id",
+      sql: "
+        -- Create new highlights table with UNIQUE constraint on highlight_id
+        CREATE TABLE highlights_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pdf_id INTEGER NOT NULL,
+          highlight_id TEXT NOT NULL UNIQUE,
+          content_text TEXT,
+          content_image TEXT,
+          comment_text TEXT,
+          comment_emoji TEXT,
+          position_data TEXT NOT NULL,
+          page_number INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (pdf_id) REFERENCES pdfs(id) ON DELETE CASCADE
+        );
+        
+        -- Copy all data from old highlights table
+        INSERT INTO highlights_new 
+        SELECT * FROM highlights;
+        
+        -- Drop old highlight_tags table (will be recreated with proper foreign key)
+        DROP TABLE IF EXISTS highlight_tags;
+        
+        -- Drop old highlights table
+        DROP TABLE highlights;
+        
+        -- Rename new table to highlights
+        ALTER TABLE highlights_new RENAME TO highlights;
+        
+        -- Recreate highlight_tags with correct foreign key referencing the UNIQUE column
+        CREATE TABLE highlight_tags (
+          highlight_id TEXT NOT NULL,
+          tag_id INTEGER NOT NULL,
+          PRIMARY KEY (highlight_id, tag_id),
+          FOREIGN KEY (highlight_id) REFERENCES highlights(highlight_id) ON DELETE CASCADE,
+          FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+        );
+      ",
+      kind: MigrationKind::Up,
+    },
   ];
 
   tauri::Builder::default()

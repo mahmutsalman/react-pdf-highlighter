@@ -1,0 +1,245 @@
+.tag-autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.tag-autocomplete__input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tag-autocomplete__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: white;
+  color: #374151;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.tag-autocomplete__input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tag-autocomplete__input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.tag-autocomplete__input::placeholder {
+  color: #9ca3af;
+}
+
+.tag-autocomplete__loading {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag-autocomplete__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tag-autocomplete__suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: 4px;
+  animation: suggestionsSlideIn 0.15s ease-out;
+}
+
+@keyframes suggestionsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tag-autocomplete__suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.15s ease;
+}
+
+.tag-autocomplete__suggestion:last-child {
+  border-bottom: none;
+}
+
+.tag-autocomplete__suggestion:hover,
+.tag-autocomplete__suggestion--selected {
+  background: #f8fafc;
+  color: #1f2937;
+}
+
+.tag-autocomplete__suggestion--selected {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.tag-autocomplete__suggestion--create {
+  font-style: italic;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.tag-autocomplete__suggestion--create:hover,
+.tag-autocomplete__suggestion--create.tag-autocomplete__suggestion--selected {
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.tag-autocomplete__suggestion-text {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.tag-autocomplete__suggestion-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tag-autocomplete__input {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+  }
+  
+  .tag-autocomplete__input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  }
+  
+  .tag-autocomplete__input:disabled {
+    background: #111827;
+    color: #6b7280;
+  }
+  
+  .tag-autocomplete__input::placeholder {
+    color: #6b7280;
+  }
+  
+  .tag-autocomplete__spinner {
+    border-color: #4b5563;
+    border-top-color: #60a5fa;
+  }
+  
+  .tag-autocomplete__suggestions {
+    background: #1f2937;
+    border-color: #374151;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+  
+  .tag-autocomplete__suggestion {
+    border-bottom-color: #374151;
+    color: #e5e7eb;
+  }
+  
+  .tag-autocomplete__suggestion:hover,
+  .tag-autocomplete__suggestion--selected {
+    background: #374151;
+    color: #f9fafb;
+  }
+  
+  .tag-autocomplete__suggestion--selected {
+    background: #1e40af;
+    color: #bfdbfe;
+  }
+  
+  .tag-autocomplete__suggestion--create {
+    background: #111827;
+    border-top-color: #4b5563;
+    color: #9ca3af;
+  }
+  
+  .tag-autocomplete__suggestion--create:hover,
+  .tag-autocomplete__suggestion--create.tag-autocomplete__suggestion--selected {
+    background: #1e3a8a;
+    color: #93c5fd;
+  }
+  
+  .tag-autocomplete__suggestion-hint {
+    color: #6b7280;
+  }
+}
+
+/* Scrollbar styling for suggestions */
+.tag-autocomplete__suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tag-autocomplete__suggestions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tag-autocomplete__suggestions::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.tag-autocomplete__suggestions::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  .tag-autocomplete__suggestions::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.5);
+  }
+  
+  .tag-autocomplete__suggestions::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+  }
+}
+
+/* Focus ring for accessibility */
+.tag-autocomplete__suggestion:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+.tag-autocomplete__suggestion:focus:not(:focus-visible) {
+  outline: none;
+}

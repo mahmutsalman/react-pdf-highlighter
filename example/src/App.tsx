@@ -25,6 +25,10 @@ import { databaseService, type PdfRecord } from "./services/database";
 
 import "./style/App.css";
 import "../../dist/style.css";
+import "./style/TagChip.css";
+import "./style/TagModal.css";
+import "./style/TagAutocomplete.css";
+import "./style/HighlightContextMenu.css";
 
 const testHighlights: Record<string, Array<IHighlight>> = _testHighlights;
 
@@ -256,10 +260,22 @@ export function App() {
     // Save to database if we have a current PDF
     if (currentPdfId) {
       try {
+        console.log("📝 App: Saving highlight to database with ID:", newHighlight.id);
         await databaseService.addHighlight(currentPdfId, newHighlight);
+        console.log("✅ App: Highlight saved to database successfully");
       } catch (error) {
-        console.error("Error saving highlight to database:", error);
+        console.error("❌ App: Error saving highlight to database:", error);
+        
+        // Show user-friendly error message
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        alert(`Failed to save highlight to database: ${errorMessage}\n\nThe highlight will still appear in the current session, but tags may not work properly until the highlight is saved.`);
+        
+        // Note: We still add to React state so user doesn't lose their work
+        // but they'll need to be aware that database operations might fail
       }
+    } else {
+      console.warn("⚠️ App: No current PDF ID set, highlight not saved to database");
+      console.warn("⚠️ App: This means tag operations will fail for this highlight");
     }
     
     setHighlights((prevHighlights) => [
@@ -341,6 +357,10 @@ export function App() {
         toggleDocument={toggleDocument}
         openLocalFile={openLocalFile}
         showAllPdfs={showAllPdfs}
+        onHighlightsUpdate={(updatedHighlights) => {
+          // Refresh highlight tags when they're updated
+          console.log('Highlights updated, refreshing sidebar');
+        }}
       />
       <div
         style={{
