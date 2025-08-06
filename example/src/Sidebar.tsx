@@ -3,6 +3,7 @@ import type { IHighlight } from "./react-pdf-highlighter";
 import { HighlightContextMenu } from "./components/HighlightContextMenu";
 import { TagModal } from "./components/TagModal";
 import { TagChip } from "./components/TagChip";
+import { CommentEditModal } from "./components/CommentEditModal";
 import { databaseService, type Tag } from "./services/database";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
   openLocalFile: () => void;
   showAllPdfs: () => void;
   onHighlightsUpdate?: (highlights: Array<IHighlight>) => void;
+  onUpdateComment?: (highlightId: string, commentText: string, commentEmoji: string) => Promise<void>;
 }
 
 const updateHash = (highlight: IHighlight) => {
@@ -29,6 +31,7 @@ export function Sidebar({
   openLocalFile,
   showAllPdfs,
   onHighlightsUpdate,
+  onUpdateComment,
 }: Props) {
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -41,6 +44,14 @@ export function Sidebar({
   });
 
   const [tagModal, setTagModal] = useState<{
+    isOpen: boolean;
+    highlight: IHighlight | null;
+  }>({
+    isOpen: false,
+    highlight: null,
+  });
+
+  const [commentEditModal, setCommentEditModal] = useState<{
     isOpen: boolean;
     highlight: IHighlight | null;
   }>({
@@ -75,6 +86,7 @@ export function Sidebar({
       if (e.key === 'Escape') {
         setContextMenu(prev => ({ ...prev, isOpen: false }));
         setTagModal({ isOpen: false, highlight: null });
+        setCommentEditModal({ isOpen: false, highlight: null });
       }
     };
 
@@ -159,8 +171,36 @@ export function Sidebar({
     }
   };
 
+  const handleEditComment = () => {
+    if (contextMenu.highlight) {
+      setCommentEditModal({
+        isOpen: true,
+        highlight: contextMenu.highlight,
+      });
+    }
+  };
+
   const handleCloseTagModal = () => {
     setTagModal({ isOpen: false, highlight: null });
+  };
+
+  const handleCloseCommentEditModal = () => {
+    setCommentEditModal({ isOpen: false, highlight: null });
+  };
+
+  const handleSaveComment = async (commentText: string, commentEmoji: string) => {
+    if (commentEditModal.highlight && onUpdateComment) {
+      try {
+        await onUpdateComment(commentEditModal.highlight.id, commentText, commentEmoji);
+        console.log("Comment updated successfully");
+        
+        // Notify parent if callback provided
+        onHighlightsUpdate?.(highlights);
+      } catch (error) {
+        console.error("Error updating comment:", error);
+        throw error; // Re-throw so the modal can handle the error
+      }
+    }
   };
 
   const handleSaveTags = async (tags: Tag[]) => {
@@ -342,6 +382,7 @@ export function Sidebar({
         isOpen={contextMenu.isOpen}
         onClose={handleCloseContextMenu}
         onManageTags={handleManageTags}
+        onEdit={handleEditComment}
         position={contextMenu.position}
         highlight={contextMenu.highlight!}
       />
@@ -353,6 +394,16 @@ export function Sidebar({
           onClose={handleCloseTagModal}
           onSave={handleSaveTags}
           highlight={tagModal.highlight}
+        />
+      )}
+
+      {/* Comment Edit Modal */}
+      {commentEditModal.highlight && (
+        <CommentEditModal
+          isOpen={commentEditModal.isOpen}
+          onClose={handleCloseCommentEditModal}
+          onSave={handleSaveComment}
+          highlight={commentEditModal.highlight}
         />
       )}
     </div>

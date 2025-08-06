@@ -29,6 +29,7 @@ import "./style/TagChip.css";
 import "./style/TagModal.css";
 import "./style/TagAutocomplete.css";
 import "./style/HighlightContextMenu.css";
+import "./style/CommentEditModal.css";
 
 const testHighlights: Record<string, Array<IHighlight>> = _testHighlights;
 
@@ -320,6 +321,40 @@ export function App() {
     );
   };
 
+  const updateHighlightComment = async (
+    highlightId: string,
+    commentText: string,
+    commentEmoji: string,
+  ) => {
+    console.log("Updating highlight comment", highlightId, commentText, commentEmoji);
+    
+    // Update in database
+    if (currentPdfId) {
+      try {
+        await databaseService.updateHighlightComment(highlightId, commentText, commentEmoji);
+        console.log("Comment updated in database successfully");
+      } catch (error) {
+        console.error("Error updating comment in database:", error);
+        throw error; // Re-throw to let the UI handle the error
+      }
+    }
+    
+    // Update in state
+    setHighlights((prevHighlights) =>
+      prevHighlights.map((h) => {
+        return h.id === highlightId
+          ? {
+              ...h,
+              comment: {
+                text: commentText,
+                emoji: commentEmoji,
+              },
+            }
+          : h;
+      }),
+    );
+  };
+
   // Navigation functions
   const showAllPdfs = () => {
     setAppState('library');
@@ -361,6 +396,7 @@ export function App() {
           // Refresh highlight tags when they're updated
           console.log('Highlights updated, refreshing sidebar');
         }}
+        onUpdateComment={updateHighlightComment}
       />
       <div
         style={{

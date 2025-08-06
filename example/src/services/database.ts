@@ -183,6 +183,18 @@ class DatabaseService {
     );
   }
 
+  async updateHighlightComment(
+    highlightId: string,
+    commentText: string,
+    commentEmoji: string
+  ): Promise<void> {
+    await this.ensureInitialized();
+    await this.db!.execute(
+      "UPDATE highlights SET comment_text = ?, comment_emoji = ? WHERE highlight_id = ?",
+      [commentText, commentEmoji, highlightId]
+    );
+  }
+
   async deleteHighlight(highlightId: string): Promise<void> {
     await this.ensureInitialized();
     await this.db!.execute("DELETE FROM highlights WHERE highlight_id = ?", [highlightId]);
