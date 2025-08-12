@@ -63,6 +63,7 @@ export function Sidebar({
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [tagSearchQuery, setTagSearchQuery] = useState<string>("");
+  const [showAllTags, setShowAllTags] = useState<boolean>(false);
   const [tagsCache, setTagsCache] = useState<{ tags: Tag[]; timestamp: number } | null>(null);
 
   // Load tags for all highlights when highlights change
@@ -245,6 +246,21 @@ export function Sidebar({
     );
   }, [availableTags, tagSearchQuery]);
 
+  // Calculate visible tags based on limit (approximately 2 lines worth)
+  const visibleTagsLimit = 6; // Adjust based on typical tag width - 6 tags typically fit in 2 lines
+  const visibleTags = useMemo(() => {
+    if (showAllTags || tagSearchQuery) {
+      return filteredTags;
+    }
+    
+    // Always show selected tags + limited unselected tags
+    const unselectedTags = filteredTags.filter(tag => !selectedTags.some(t => t.id === tag.id));
+    const maxUnselected = Math.max(0, visibleTagsLimit - selectedTags.length);
+    return [...selectedTags, ...unselectedTags.slice(0, maxUnselected)];
+  }, [filteredTags, selectedTags, showAllTags, visibleTagsLimit, tagSearchQuery]);
+  
+  const hiddenTagsCount = filteredTags.length - visibleTags.length;
+
   // Memoized filter for better performance
   const filteredHighlights = useMemo(() => {
     if (selectedTags.length === 0) {
@@ -338,7 +354,7 @@ export function Sidebar({
           </div>
 
           {/* Tag Chips */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" }}>
             {/* Show selected tags first, even if they don't match search */}
             {selectedTags.map(tag => (
               <TagChip
@@ -350,8 +366,8 @@ export function Sidebar({
               />
             ))}
             
-            {/* Show filtered unselected tags */}
-            {filteredTags
+            {/* Show visible unselected tags */}
+            {visibleTags
               .filter(tag => !selectedTags.some(t => t.id === tag.id))
               .map(tag => (
                 <TagChip
@@ -362,6 +378,50 @@ export function Sidebar({
                   size="small"
                 />
               ))}
+            
+            {/* Show more/less button */}
+            {!tagSearchQuery && hiddenTagsCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllTags(!showAllTags)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px 12px",
+                  fontSize: "12px",
+                  fontWeight: "500",
+                  color: "#4b5563",
+                  backgroundColor: "#f3f4f6",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  minWidth: "40px",
+                  height: "24px",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#e5e7eb";
+                  e.currentTarget.style.borderColor = "#9ca3af";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f3f4f6";
+                  e.currentTarget.style.borderColor = "#d1d5db";
+                }}
+                title={showAllTags ? "Show less tags" : `Show ${hiddenTagsCount} more tags`}
+              >
+                {showAllTags ? (
+                  <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                    <span>Show less</span>
+                  </span>
+                ) : (
+                  <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                    <span style={{ fontSize: "16px", lineHeight: "1" }}>•••</span>
+                    <span>+{hiddenTagsCount}</span>
+                  </span>
+                )}
+              </button>
+            )}
           </div>
           
           {/* Show message if no tags match search */}
@@ -386,22 +446,25 @@ export function Sidebar({
               Showing {filteredTags.length} of {availableTags.length} tags
             </div>
           )}
-          {selectedTags.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setSelectedTags([])}
-              style={{
-                marginTop: "8px",
-                padding: "4px 8px",
-                fontSize: "12px",
-                background: "none",
-                border: "1px solid #d1d5db",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-            >
-              Clear Filters
-            </button>
+          {(selectedTags.length > 0 || showAllTags) && (
+            <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
+              {selectedTags.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTags([])}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: "12px",
+                    background: "none",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
