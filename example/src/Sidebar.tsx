@@ -62,6 +62,7 @@ export function Sidebar({
   const [highlightTags, setHighlightTags] = useState<Map<string, Tag[]>>(new Map());
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [tagSearchQuery, setTagSearchQuery] = useState<string>("");
   const [tagsCache, setTagsCache] = useState<{ tags: Tag[]; timestamp: number } | null>(null);
 
   // Load tags for all highlights when highlights change
@@ -232,6 +233,18 @@ export function Sidebar({
     });
   };
 
+  // Memoized filter for tags based on search query
+  const filteredTags = useMemo(() => {
+    if (!tagSearchQuery.trim()) {
+      return availableTags;
+    }
+    
+    const query = tagSearchQuery.toLowerCase().trim();
+    return availableTags.filter(tag => 
+      tag.name.toLowerCase().includes(query)
+    );
+  }, [availableTags, tagSearchQuery]);
+
   // Memoized filter for better performance
   const filteredHighlights = useMemo(() => {
     if (selectedTags.length === 0) {
@@ -273,17 +286,106 @@ export function Sidebar({
           <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "14px", fontWeight: "600" }}>
             Filter by Tags ({selectedTags.length} selected)
           </h3>
+          
+          {/* Tag Search Input */}
+          <div style={{ marginBottom: "0.5rem", position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Search tags..."
+              value={tagSearchQuery}
+              onChange={(e) => setTagSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "6px 30px 6px 8px",
+                fontSize: "13px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                outline: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#60a5fa";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#d1d5db";
+              }}
+            />
+            {tagSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setTagSearchQuery("")}
+                style={{
+                  position: "absolute",
+                  right: "4px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px",
+                  fontSize: "14px",
+                  color: "#6b7280",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#374151";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#6b7280";
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Tag Chips */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-            {availableTags.map(tag => (
+            {/* Show selected tags first, even if they don't match search */}
+            {selectedTags.map(tag => (
               <TagChip
                 key={tag.id}
                 tag={tag}
                 onClick={handleTagClick}
-                variant={selectedTags.some(t => t.id === tag.id) ? "filter" : "default"}
+                variant="filter"
                 size="small"
               />
             ))}
+            
+            {/* Show filtered unselected tags */}
+            {filteredTags
+              .filter(tag => !selectedTags.some(t => t.id === tag.id))
+              .map(tag => (
+                <TagChip
+                  key={tag.id}
+                  tag={tag}
+                  onClick={handleTagClick}
+                  variant="default"
+                  size="small"
+                />
+              ))}
           </div>
+          
+          {/* Show message if no tags match search */}
+          {tagSearchQuery && filteredTags.length === 0 && (
+            <div style={{ 
+              marginTop: "8px", 
+              fontSize: "12px", 
+              color: "#6b7280",
+              fontStyle: "italic" 
+            }}>
+              No tags match "{tagSearchQuery}"
+            </div>
+          )}
+          
+          {/* Show count of matching tags */}
+          {tagSearchQuery && filteredTags.length > 0 && (
+            <div style={{ 
+              marginTop: "8px", 
+              fontSize: "12px", 
+              color: "#6b7280" 
+            }}>
+              Showing {filteredTags.length} of {availableTags.length} tags
+            </div>
+          )}
           {selectedTags.length > 0 && (
             <button
               type="button"
