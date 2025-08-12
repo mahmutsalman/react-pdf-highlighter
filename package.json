@@ -20,8 +20,8 @@
   "main": "./dist/src/index.js",
   "style": "./dist/style.css",
   "scripts": {
-    "start": "npm run dev",
-    "dev": "vite build && (cd ./example && vite)",
+    "start": "npm run tauri:dev",
+    "dev": "npm run tauri:dev",
     "build": "npm run clean && npm run compile && vite build && npm run build:example",
     "compile": "tsc --noEmit && (cd ./example && tsc --noEmit)",
     "build:example": "vite build && (cd ./example && vite build)",
@@ -33,7 +33,14 @@
     "prepublishOnly": "npm run build",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "web:dev": "vite build && (cd ./example && vite)",
+    "docker:dev": "./docker-dev.sh",
+    "docker:desktop": "./docker-desktop.sh",
+    "docker:stop": "./docker-dev-stop.sh",
+    "docker:build": "docker-compose build",
+    "docker:clean": "./docker-dev-stop.sh --clean",
+    "docker:clean:all": "./docker-dev-stop.sh --clean --volumes"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

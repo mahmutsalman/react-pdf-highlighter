@@ -303,7 +303,58 @@ class DatabaseService {
 
   async deleteTag(tagId: number): Promise<void> {
     await this.ensureInitialized();
+    // First remove all highlight-tag relationships
+    await this.db!.execute("DELETE FROM highlight_tags WHERE tag_id = ?", [tagId]);
+    // Then delete the tag
     await this.db!.execute("DELETE FROM tags WHERE id = ?", [tagId]);
+  }
+
+  async bulkDeleteTags(tagIds: number[]): Promise<void> {
+    await this.ensureInitialized();
+    
+    if (tagIds.length === 0) return;
+    
+    // Create placeholders for the SQL IN clause
+    const placeholders = tagIds.map(() => "?").join(",");
+    
+    try {
+      // Start transaction for consistency
+      await this.db!.execute("BEGIN TRANSACTION");
+      
+      // First remove all highlight-tag relationships for these tags
+      await this.db!.execute(
+        `DELETE FROM highlight_tags WHERE tag_id IN (${placeholders})`,
+        tagIds
+      );
+      
+      // Then delete the tags
+      await this.db!.execute(
+        `DELETE FROM tags WHERE id IN (${placeholders})`,
+        tagIds
+      );
+      
+      // Commit transaction
+      await this.db!.execute("COMMIT");
+    } catch (error) {
+      // Rollback on error
+      await this.db!.execute("ROLLBACK");
+      throw error;
+    }
+  }
+
+  async getTagsWithUsageCount(): Promise<{ tag: Tag; usageCount: number }[]> {
+    await this.ensureInitialized();
+    const result = await this.db!.select<(Tag & { usage_count: number })[]>(
+      `SELECT t.*, COUNT(ht.highlight_id) as usage_count
+       FROM tags t
+       LEFT JOIN highlight_tags ht ON t.id = ht.tag_id
+       GROUP BY t.id, t.name, t.created_at
+       ORDER BY t.name ASC`
+    );
+    return result.map(row => ({
+      tag: { id: row.id, name: row.name, created_at: row.created_at },
+      usageCount: row.usage_count
+    }));
   }
 
   // Helper method to check if highlight exists in database

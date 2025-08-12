@@ -27,10 +27,56 @@ See demo https://agentcooper.github.io/react-pdf-highlighter/.
 
 To run the example app locally:
 
+### Native Desktop App (Default)
 ```bash
 npm install
 npm start
+# Opens Tauri desktop application
 ```
+
+### Hybrid Docker Desktop Mode (Recommended)
+```bash
+# Start containerized dev server + native desktop app
+npm run docker:desktop
+# Combines Docker isolation with native desktop experience
+```
+
+### Web Development (Docker)
+```bash
+# Start with automatic port management  
+npm run docker:dev
+# Opens in browser at http://localhost:3003
+
+# Stop the development environment
+npm run docker:stop
+```
+
+### Web Development (Local)
+```bash
+npm run web:dev
+# Opens in browser at http://localhost:3003
+```
+
+**Development Mode Comparison:**
+- 🖥️ **Native Desktop** (`npm start`): Real desktop app with native features
+- 🐳🖥️ **Hybrid Docker Desktop** (`npm run docker:desktop`): **Best of both worlds** - native desktop app + Docker isolation
+- 🐳 **Docker Web** (`npm run docker:dev`): Browser version with port management
+- 🌐 **Local Web** (`npm run web:dev`): Browser version without Docker
+
+**Hybrid Docker Desktop Benefits:**
+- 🖥️ **Native Desktop Experience**: Real desktop app with all native features
+- 🐳 **Docker Isolation**: Development server runs in isolated container
+- 🚀 **Zero Port Conflicts**: Automatic port management for multiple projects
+- 🔄 **Hot Reloading**: Live code changes in both container and desktop app
+- 📦 **Consistent Environment**: Docker ensures same setup across all machines
+
+**Docker Benefits:**
+- 🐳 **Isolated Environment**: Consistent development across all machines
+- 🚀 **Zero Port Conflicts**: Automatic port management for multiple projects
+- 🔄 **Hot Reloading**: Live code changes without rebuilding containers
+- 📦 **No Local Dependencies**: Everything runs in containers
+
+See [Development Modes Guide](localResources/docker/DEVELOPMENT_MODES.md) and [Docker Setup Guide](localResources/docker/DOCKER_SETUP_GUIDE.md) for detailed instructions.
 
 ## Install
 

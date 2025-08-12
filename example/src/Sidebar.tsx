@@ -4,6 +4,7 @@ import { HighlightContextMenu } from "./components/HighlightContextMenu";
 import { TagModal } from "./components/TagModal";
 import { TagChip } from "./components/TagChip";
 import { CommentEditModal } from "./components/CommentEditModal";
+import { TagManagementModal } from "./components/TagManagementModal";
 import { databaseService, type Tag } from "./services/database";
 
 interface Props {
@@ -59,6 +60,12 @@ export function Sidebar({
     highlight: null,
   });
 
+  const [tagManagementModal, setTagManagementModal] = useState<{
+    isOpen: boolean;
+  }>({
+    isOpen: false,
+  });
+
   const [highlightTags, setHighlightTags] = useState<Map<string, Tag[]>>(new Map());
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
@@ -89,6 +96,7 @@ export function Sidebar({
         setContextMenu(prev => ({ ...prev, isOpen: false }));
         setTagModal({ isOpen: false, highlight: null });
         setCommentEditModal({ isOpen: false, highlight: null });
+        setTagManagementModal({ isOpen: false });
       }
     };
 
@@ -188,6 +196,28 @@ export function Sidebar({
 
   const handleCloseCommentEditModal = () => {
     setCommentEditModal({ isOpen: false, highlight: null });
+  };
+
+  const handleOpenTagManagement = () => {
+    setTagManagementModal({ isOpen: true });
+  };
+
+  const handleCloseTagManagement = () => {
+    setTagManagementModal({ isOpen: false });
+  };
+
+  const handleTagsDeleted = async () => {
+    // Reload all tags and highlight tags after deletion
+    await Promise.all([
+      loadAvailableTags(),
+      loadHighlightTags()
+    ]);
+    
+    // Clear selected tags if any of them were deleted
+    setSelectedTags([]);
+    
+    // Notify parent if callback provided
+    onHighlightsUpdate?.(highlights);
   };
 
   const handleSaveComment = async (commentText: string, commentEmoji: string) => {
@@ -363,6 +393,7 @@ export function Sidebar({
                 onClick={handleTagClick}
                 variant="filter"
                 size="small"
+                onManageAllTags={handleOpenTagManagement}
               />
             ))}
             
@@ -376,6 +407,7 @@ export function Sidebar({
                   onClick={handleTagClick}
                   variant="default"
                   size="small"
+                  onManageAllTags={handleOpenTagManagement}
                 />
               ))}
             
@@ -505,7 +537,12 @@ export function Sidebar({
                 {tags.length > 0 && (
                   <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "4px" }}>
                     {tags.map(tag => (
-                      <TagChip key={tag.id} tag={tag} size="small" />
+                      <TagChip 
+                        key={tag.id} 
+                        tag={tag} 
+                        size="small"
+                        onManageAllTags={handleOpenTagManagement}
+                      />
                     ))}
                   </div>
                 )}
@@ -572,6 +609,13 @@ export function Sidebar({
           highlight={commentEditModal.highlight}
         />
       )}
+
+      {/* Tag Management Modal */}
+      <TagManagementModal
+        isOpen={tagManagementModal.isOpen}
+        onClose={handleCloseTagManagement}
+        onTagsDeleted={handleTagsDeleted}
+      />
     </div>
   );
 }

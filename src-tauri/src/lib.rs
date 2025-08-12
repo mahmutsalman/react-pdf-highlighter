@@ -1,4 +1,5 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
+use std::env;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -115,6 +116,14 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
+        
+        // Check for custom dev server URL from environment
+        if let Ok(dev_url) = env::var("TAURI_DEV_SERVER_URL") {
+          println!("🌐 Using custom dev server URL: {}", dev_url);
+        } else if let Ok(dev_port) = env::var("DEV_PORT") {
+          let dev_url = format!("http://localhost:{}", dev_port);
+          println!("🌐 Using dev server port: {} -> {}", dev_port, dev_url);
+        }
       }
       Ok(())
     })
