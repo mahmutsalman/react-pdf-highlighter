@@ -63,7 +63,15 @@ export function TagChip({
   React.useEffect(() => {
     if (!contextMenu.isOpen) return;
 
-    const handleClickOutside = () => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const contextMenuElement = document.querySelector('.tag-chip-context-menu');
+      
+      // Don't close if clicking inside the context menu
+      if (contextMenuElement && contextMenuElement.contains(target)) {
+        return;
+      }
+      
       handleCloseContextMenu();
     };
 
@@ -73,10 +81,15 @@ export function TagChip({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Use a small timeout to allow the context menu to render before adding the listener
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 10);
+    
     document.addEventListener('keydown', handleEscape);
 
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
