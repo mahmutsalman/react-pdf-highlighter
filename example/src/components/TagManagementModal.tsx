@@ -25,6 +25,7 @@ export function TagManagementModal({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Load tags with usage counts when modal opens
   useEffect(() => {
@@ -35,6 +36,7 @@ export function TagManagementModal({
       setSelectedTagIds(new Set());
       setError(null);
       setShowConfirmDialog(false);
+      setSearchQuery("");
     }
   }, [isOpen]);
 
@@ -52,13 +54,25 @@ export function TagManagementModal({
     }
   };
 
+  // Filter tags based on search query
+  const filteredTags = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return tags;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    return tags.filter(tagWithUsage => 
+      tagWithUsage.tag.name.toLowerCase().includes(query)
+    );
+  }, [tags, searchQuery]);
+
   const selectedTags = useMemo(() => {
     return tags.filter(tagWithUsage => selectedTagIds.has(tagWithUsage.tag.id));
   }, [tags, selectedTagIds]);
 
   const isAllSelected = useMemo(() => {
-    return tags.length > 0 && selectedTagIds.size === tags.length;
-  }, [tags.length, selectedTagIds.size]);
+    return filteredTags.length > 0 && filteredTags.every(tagWithUsage => selectedTagIds.has(tagWithUsage.tag.id));
+  }, [filteredTags, selectedTagIds]);
 
   const handleTagToggle = (tagId: number) => {
     setSelectedTagIds(prev => {
@@ -74,9 +88,23 @@ export function TagManagementModal({
 
   const handleSelectAll = () => {
     if (isAllSelected) {
-      setSelectedTagIds(new Set());
+      // Deselect all filtered tags
+      setSelectedTagIds(prev => {
+        const newSet = new Set(prev);
+        filteredTags.forEach(tagWithUsage => {
+          newSet.delete(tagWithUsage.tag.id);
+        });
+        return newSet;
+      });
     } else {
-      setSelectedTagIds(new Set(tags.map(tagWithUsage => tagWithUsage.tag.id)));
+      // Select all filtered tags
+      setSelectedTagIds(prev => {
+        const newSet = new Set(prev);
+        filteredTags.forEach(tagWithUsage => {
+          newSet.add(tagWithUsage.tag.id);
+        });
+        return newSet;
+      });
     }
   };
 
@@ -166,11 +194,38 @@ export function TagManagementModal({
             </div>
           ) : (
             <>
+              {/* Search Input */}
+              <div className="tag-management-modal__search">
+                <div className="tag-management-modal__search-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Search tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="tag-management-modal__search-input"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="tag-management-modal__search-clear"
+                      aria-label="Clear search"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Controls */}
               <div className="tag-management-modal__controls">
                 <div className="tag-management-modal__stats">
                   {tags.length === 0 ? (
                     <span>No tags found</span>
+                  ) : searchQuery ? (
+                    <span>
+                      {selectedTagIds.size} selected • {filteredTags.length} of {tags.length} tags shown
+                    </span>
                   ) : (
                     <span>
                       {selectedTagIds.size} of {tags.length} tags selected
@@ -178,7 +233,7 @@ export function TagManagementModal({
                   )}
                 </div>
                 
-                {tags.length > 0 && (
+                {filteredTags.length > 0 && (
                   <button
                     className="tag-management-modal__select-all"
                     onClick={handleSelectAll}
@@ -194,9 +249,13 @@ export function TagManagementModal({
                 <div className="tag-management-modal__empty">
                   No tags have been created yet.
                 </div>
+              ) : filteredTags.length === 0 ? (
+                <div className="tag-management-modal__empty">
+                  No tags match "{searchQuery}".
+                </div>
               ) : (
                 <div className="tag-management-modal__tag-list">
-                  {tags.map(({ tag, usageCount }) => (
+                  {filteredTags.map(({ tag, usageCount }) => (
                     <label
                       key={tag.id}
                       className={`tag-management-modal__tag-item ${
