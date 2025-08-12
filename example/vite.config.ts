@@ -8,7 +8,9 @@ export default defineConfig({
   },
   plugins: [react()],
   server: {
-    port: 3003,
+    port: parseInt(process.env.VITE_PORT || process.env.DEV_PORT || "3847"),
+    // Listen on all interfaces for Docker container access
+    host: process.env.VITE_HOST || "0.0.0.0",
     // Prevent browser from opening automatically when used with Tauri
     open: false,
   },

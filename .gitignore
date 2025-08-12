@@ -11,3 +11,28 @@ types
 localResources/
 *.db
 *.db-journal
+
+# Environment files
+.env.docker
+.env.local
+.env.development
+.env.production
+
+# Runtime state files
+dev-ports.json
+
+# Docker files
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# Shell scripts
+*.sh
+docker-dev.sh
+docker-dev-stop.sh
+docker-desktop.sh
+tauri-with-port.sh
+test-hybrid-mode.sh
+start-app.sh
+stop-app.sh

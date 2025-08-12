@@ -5,8 +5,8 @@
   "identifier": "com.pdfhighlighter.app",
   "build": {
     "frontendDist": "./example/dist",
-    "devUrl": "http://localhost:3003",
-    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:3847",
+    "beforeDevCommand": "npm run web:dev",
     "beforeBuildCommand": "npm run build:example"
   },
   "app": {
