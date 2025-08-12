@@ -380,7 +380,7 @@ export function Sidebar({
               ))}
             
             {/* Show more/less button */}
-            {!tagSearchQuery && hiddenTagsCount > 0 && (
+            {!tagSearchQuery && (hiddenTagsCount > 0 || showAllTags) && (
               <button
                 type="button"
                 onClick={() => setShowAllTags(!showAllTags)}
@@ -411,7 +411,8 @@ export function Sidebar({
                 title={showAllTags ? "Show less tags" : `Show ${hiddenTagsCount} more tags`}
               >
                 {showAllTags ? (
-                  <span style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ fontSize: "14px", lineHeight: "1" }}>✕</span>
                     <span>Show less</span>
                   </span>
                 ) : (
