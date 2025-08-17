@@ -15,6 +15,7 @@ interface Props {
   showAllPdfs: () => void;
   onHighlightsUpdate?: (highlights: Array<IHighlight>) => void;
   onUpdateComment?: (highlightId: string, commentText: string, commentEmoji: string) => Promise<void>;
+  currentPdfId?: number;
 }
 
 const updateHash = (highlight: IHighlight) => {
@@ -33,6 +34,7 @@ export function Sidebar({
   showAllPdfs,
   onHighlightsUpdate,
   onUpdateComment,
+  currentPdfId,
 }: Props) {
   const [contextMenu, setContextMenu] = useState<{
     isOpen: boolean;
@@ -71,13 +73,20 @@ export function Sidebar({
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [tagSearchQuery, setTagSearchQuery] = useState<string>("");
   const [showAllTags, setShowAllTags] = useState<boolean>(false);
-  const [tagsCache, setTagsCache] = useState<{ tags: Tag[]; timestamp: number } | null>(null);
+  const [tagsCache, setTagsCache] = useState<{ tags: Tag[]; timestamp: number; key: string } | null>(null);
 
   // Load tags for all highlights when highlights change
   useEffect(() => {
     loadHighlightTags();
     loadAvailableTags();
   }, [highlights]);
+
+  // Reload available tags when PDF changes
+  useEffect(() => {
+    loadAvailableTags();
+    // Clear selected tags when switching PDFs to avoid confusion
+    setSelectedTags([]);
+  }, [currentPdfId]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -137,16 +146,23 @@ export function Sidebar({
 
   const loadAvailableTags = async () => {
     try {
-      // Use cache if it's less than 30 seconds old
+      // Use cache if it's less than 30 seconds old and for the same PDF
       const now = Date.now();
-      if (tagsCache && (now - tagsCache.timestamp) < 30000) {
+      const cacheKey = currentPdfId ? `pdf_${currentPdfId}` : 'all_tags';
+      if (tagsCache && 
+          (now - tagsCache.timestamp) < 30000 && 
+          tagsCache.key === cacheKey) {
         setAvailableTags(tagsCache.tags);
         return;
       }
 
-      const tags = await databaseService.getAllTags();
+      // Load tags specific to current PDF if one is open, otherwise all tags
+      const tags = currentPdfId 
+        ? await databaseService.getTagsForPdf(currentPdfId)
+        : await databaseService.getAllTags();
+      
       setAvailableTags(tags);
-      setTagsCache({ tags, timestamp: now });
+      setTagsCache({ tags, timestamp: now, key: cacheKey });
     } catch (error) {
       console.error('Error loading available tags:', error);
     }
@@ -312,11 +328,6 @@ export function Sidebar({
           react-pdf-highlighter {APP_VERSION}
         </h2>
 
-        <p style={{ fontSize: "0.7rem" }}>
-          <a href="https://github.com/agentcooper/react-pdf-highlighter">
-            Open in GitHub
-          </a>
-        </p>
 
         <p>
           <small>
@@ -324,6 +335,34 @@ export function Sidebar({
             drag. Right-click highlights to manage tags. Press Ctrl+T to quickly tag the first highlight.
           </small>
         </p>
+      </div>
+
+      {/* Show All PDFs Button - Moved to top for better accessibility */}
+      <div style={{ padding: "0 1rem 1rem 1rem" }}>
+        <button 
+          type="button" 
+          onClick={showAllPdfs} 
+          style={{ 
+            width: "100%",
+            padding: "0.75rem",
+            backgroundColor: "#007acc",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "14px",
+            fontWeight: "500",
+            cursor: "pointer",
+            transition: "background-color 0.2s"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#005fa3";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "#007acc";
+          }}
+        >
+          Show All PDFs
+        </button>
       </div>
 
       {/* Tag Filter Section */}
@@ -564,9 +603,6 @@ export function Sidebar({
       <div style={{ padding: "1rem" }}>
         <button type="button" onClick={openLocalFile} style={{ marginBottom: "0.5rem", width: "100%" }}>
           Open Local PDF File
-        </button>
-        <button type="button" onClick={showAllPdfs} style={{ marginBottom: "0.5rem", width: "100%" }}>
-          Show All PDFs
         </button>
         <button type="button" onClick={toggleDocument} style={{ width: "100%" }}>
           Toggle Sample Document

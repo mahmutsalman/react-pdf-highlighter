@@ -397,6 +397,7 @@ export function App() {
           console.log('Highlights updated, refreshing sidebar');
         }}
         onUpdateComment={updateHighlightComment}
+        currentPdfId={currentPdfId}
       />
       <div
         style={{

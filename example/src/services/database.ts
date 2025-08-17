@@ -35,11 +35,15 @@ export interface HighlightTag {
 
 class DatabaseService {
   private db: Database | null = null;
+  private readonly isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+  private readonly dbName = this.isDevelopment ? 'pdf_highlighter_dev.db' : 'pdf_highlighter.db';
 
   async initialize(): Promise<void> {
     if (!this.db) {
       console.log('🏗️ DatabaseService: Initializing database connection...');
-      this.db = await Database.load("sqlite:pdf_highlighter.db");
+      console.log(`📊 DatabaseService: Environment: ${this.isDevelopment ? 'Development' : 'Production'}`);
+      console.log(`📁 DatabaseService: Database file: ${this.dbName}`);
+      this.db = await Database.load(`sqlite:${this.dbName}`);
       console.log('✅ DatabaseService: Database connection established');
       
       // Verify table existence
@@ -287,6 +291,19 @@ class DatabaseService {
     await this.ensureInitialized();
     const result = await this.db!.select<Tag[]>(
       "SELECT * FROM tags ORDER BY name ASC"
+    );
+    return result;
+  }
+
+  async getTagsForPdf(pdfId: number): Promise<Tag[]> {
+    await this.ensureInitialized();
+    const result = await this.db!.select<Tag[]>(
+      `SELECT DISTINCT t.* FROM tags t
+       INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+       INNER JOIN highlights h ON ht.highlight_id = h.highlight_id
+       WHERE h.pdf_id = ?
+       ORDER BY t.name ASC`,
+      [pdfId]
     );
     return result;
   }
