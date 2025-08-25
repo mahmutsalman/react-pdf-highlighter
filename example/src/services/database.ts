@@ -428,6 +428,9 @@ class DatabaseService {
         [highlightId, tagId]
       );
       console.log('✅ DatabaseService: Highlight-tag relationship created successfully');
+      
+      // Record tag usage in history
+      await this.recordTagUsage(tagId, highlightId);
     } catch (error: any) {
       console.log('⚠️ DatabaseService: Error creating relationship:', error);
       const errorString = error.toString() || '';
@@ -442,6 +445,8 @@ class DatabaseService {
       
       if (isDuplicateError) {
         console.log('ℹ️ DatabaseService: Relationship already exists, ignoring');
+        // Still record usage even if relationship already exists
+        await this.recordTagUsage(tagId, highlightId);
       } else {
         console.error('❌ DatabaseService: Unexpected error creating relationship:', error);
         throw error;
@@ -529,6 +534,85 @@ class DatabaseService {
       tag: { id: row.id, name: row.name, created_at: row.created_at },
       count: row.count
     }));
+  }
+
+  // Record tag usage for tracking most used and recently used
+  async recordTagUsage(tagId: number, highlightId: string): Promise<void> {
+    await this.ensureInitialized();
+    try {
+      await this.db!.execute(
+        "INSERT INTO tag_usage_history (tag_id, highlight_id) VALUES (?, ?)",
+        [tagId, highlightId]
+      );
+    } catch (error) {
+      console.warn('Warning: Could not record tag usage (tag_usage_history table may not exist yet):', error);
+      // Don't throw error as this is optional functionality
+    }
+  }
+
+  // Get most used tags with usage count
+  async getMostUsedTags(limit: number = 6): Promise<{ tag: Tag; usageCount: number }[]> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<(Tag & { usage_count: number })[]>(
+        `SELECT t.*, COUNT(DISTINCT ht.highlight_id) as usage_count
+         FROM tags t
+         INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY usage_count DESC, t.name ASC
+         LIMIT ?`,
+        [limit]
+      );
+      return result.map(row => ({
+        tag: { id: row.id, name: row.name, created_at: row.created_at },
+        usageCount: row.usage_count
+      }));
+    } catch (error) {
+      console.warn('Warning: Could not fetch most used tags:', error);
+      return [];
+    }
+  }
+
+  // Get recently used tags with last used time
+  async getRecentlyUsedTags(limit: number = 6): Promise<{ tag: Tag; lastUsedAt: string }[]> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<(Tag & { last_used_at: string })[]>(
+        `SELECT DISTINCT t.*, MAX(tuh.used_at) as last_used_at
+         FROM tags t
+         INNER JOIN tag_usage_history tuh ON t.id = tuh.tag_id
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY last_used_at DESC
+         LIMIT ?`,
+        [limit]
+      );
+      return result.map(row => ({
+        tag: { id: row.id, name: row.name, created_at: row.created_at },
+        lastUsedAt: row.last_used_at
+      }));
+    } catch (error) {
+      console.warn('Warning: Could not fetch recently used tags (tag_usage_history table may not exist yet):', error);
+      // Fallback to using created_at from highlight_tags
+      try {
+        const fallbackResult = await this.db!.select<(Tag & { last_used_at: string })[]>(
+          `SELECT DISTINCT t.*, MAX(h.created_at) as last_used_at
+           FROM tags t
+           INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+           INNER JOIN highlights h ON ht.highlight_id = h.highlight_id
+           GROUP BY t.id, t.name, t.created_at
+           ORDER BY last_used_at DESC
+           LIMIT ?`,
+          [limit]
+        );
+        return fallbackResult.map(row => ({
+          tag: { id: row.id, name: row.name, created_at: row.created_at },
+          lastUsedAt: row.last_used_at
+        }));
+      } catch (fallbackError) {
+        console.warn('Warning: Fallback for recently used tags also failed:', fallbackError);
+        return [];
+      }
+    }
   }
 
   // Utility methods

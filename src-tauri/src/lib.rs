@@ -99,6 +99,21 @@ pub fn run() {
       ",
       kind: MigrationKind::Up,
     },
+    Migration {
+      version: 6,
+      description: "create_tag_usage_history_table",
+      sql: "CREATE TABLE IF NOT EXISTS tag_usage_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_id INTEGER NOT NULL,
+        highlight_id TEXT NOT NULL,
+        used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+        FOREIGN KEY (highlight_id) REFERENCES highlights(highlight_id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_tag_usage_tag_id ON tag_usage_history(tag_id);
+      CREATE INDEX IF NOT EXISTS idx_tag_usage_used_at ON tag_usage_history(used_at);",
+      kind: MigrationKind::Up,
+    },
   ];
 
   // Determine database name based on build configuration

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { TagAutocomplete } from './TagAutocomplete';
 import { TagChip } from './TagChip';
+import { TagSuggestionSection, type TagSuggestionItem } from './TagSuggestionSection';
 import { databaseService, type Tag } from '../services/database';
 import type { IHighlight } from '../react-pdf-highlighter';
 import '../style/TagModal.css';
@@ -18,11 +19,14 @@ export function TagModal({ isOpen, onClose, onSave, highlight }: TagModalProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mostUsedTags, setMostUsedTags] = useState<TagSuggestionItem[]>([]);
+  const [recentlyUsedTags, setRecentlyUsedTags] = useState<TagSuggestionItem[]>([]);
 
-  // Load current tags when modal opens
+  // Load current tags and suggestions when modal opens
   useEffect(() => {
     if (isOpen && highlight.id) {
       loadCurrentTags();
+      loadTagSuggestions();
     }
   }, [isOpen, highlight.id]);
 
@@ -54,8 +58,33 @@ export function TagModal({ isOpen, onClose, onSave, highlight }: TagModalProps) 
     }
   };
 
-  const handleAddTag = useCallback(async (tagName: string) => {
-    console.log('🏷️ TagModal: handleAddTag called with:', tagName);
+  const loadTagSuggestions = async () => {
+    try {
+      // Load most used tags
+      const mostUsed = await databaseService.getMostUsedTags(6);
+      setMostUsedTags(mostUsed.map(item => ({
+        tag: item.tag,
+        metadata: item.usageCount
+      })));
+
+      // Load recently used tags
+      const recentlyUsed = await databaseService.getRecentlyUsedTags(6);
+      setRecentlyUsedTags(recentlyUsed.map(item => ({
+        tag: item.tag,
+        metadata: item.lastUsedAt
+      })));
+    } catch (error) {
+      console.error('Error loading tag suggestions:', error);
+      // Don't show error to user as suggestions are optional
+    }
+  };
+
+  const handleAddTag = useCallback(async (tagNameOrTag: string | Tag) => {
+    // Handle both string (from autocomplete) and Tag object (from suggestions)
+    const isTagObject = typeof tagNameOrTag === 'object' && 'name' in tagNameOrTag;
+    const tagName = isTagObject ? tagNameOrTag.name : tagNameOrTag;
+    
+    console.log('🏷️ TagModal: handleAddTag called with:', tagName, isTagObject ? '(from suggestions)' : '(from input)');
     const trimmedName = tagName.trim();
     if (!trimmedName) {
       console.log('❌ TagModal: Empty tag name, ignoring');
@@ -69,16 +98,24 @@ export function TagModal({ isOpen, onClose, onSave, highlight }: TagModalProps) 
     }
 
     try {
-      console.log('💾 TagModal: Adding tag to database:', trimmedName);
-      // Ensure tag exists in database
-      const tagId = await databaseService.addTag(trimmedName);
-      console.log('✅ TagModal: Tag added to database with ID:', tagId);
+      let tag: Tag;
       
-      const tag: Tag = {
-        id: tagId,
-        name: trimmedName,
-        created_at: new Date().toISOString()
-      };
+      if (isTagObject) {
+        // Tag from suggestions - already has an ID
+        tag = tagNameOrTag as Tag;
+        console.log('📝 TagModal: Using existing tag from suggestions:', tag);
+      } else {
+        // New tag from input - need to create it
+        console.log('💾 TagModal: Adding tag to database:', trimmedName);
+        const tagId = await databaseService.addTag(trimmedName);
+        console.log('✅ TagModal: Tag added to database with ID:', tagId);
+        
+        tag = {
+          id: tagId,
+          name: trimmedName,
+          created_at: new Date().toISOString()
+        };
+      }
 
       console.log('📝 TagModal: Adding tag to currentTags state:', tag);
       setCurrentTags(prev => {
@@ -223,6 +260,26 @@ export function TagModal({ isOpen, onClose, onSave, highlight }: TagModalProps) 
               {error}
             </div>
           )}
+
+          {/* Tag Suggestions */}
+          <div className="tag-modal__suggestions">
+            <TagSuggestionSection
+              title="Most Used"
+              icon="📊"
+              tags={mostUsedTags}
+              onSelectTag={handleAddTag}
+              existingTags={currentTags}
+              type="most-used"
+            />
+            <TagSuggestionSection
+              title="Recently Used"
+              icon="🕐"
+              tags={recentlyUsedTags}
+              onSelectTag={handleAddTag}
+              existingTags={currentTags}
+              type="recently-used"
+            />
+          </div>
 
           <div className="tag-modal__section">
             <label className="tag-modal__label">
