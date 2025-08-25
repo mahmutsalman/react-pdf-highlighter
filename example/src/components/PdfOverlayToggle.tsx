@@ -1,14 +1,23 @@
 import React, { useState } from 'react';
 import { usePdfOverlay, OVERLAY_INTENSITIES } from '../contexts/PdfOverlayContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export function PdfOverlayToggle() {
   const { isOverlayEnabled, overlayIntensity, toggleOverlay, setOverlayIntensity } = usePdfOverlay();
+  const { theme, toggleTheme } = useTheme();
   const [showIntensitySlider, setShowIntensitySlider] = useState(false);
 
   const handleToggle = () => {
+    const wasEnabled = isOverlayEnabled;
     toggleOverlay();
+    
+    // Smart dark mode activation: when enabling PDF overlay and UI is in light mode
+    if (!wasEnabled && theme === 'light') {
+      toggleTheme(); // Auto-enable dark mode for consistent night reading experience
+    }
+    
     // Auto-show intensity slider when enabling
-    if (!isOverlayEnabled) {
+    if (!wasEnabled) {
       setShowIntensitySlider(true);
       // Auto-hide after 3 seconds
       setTimeout(() => setShowIntensitySlider(false), 3000);

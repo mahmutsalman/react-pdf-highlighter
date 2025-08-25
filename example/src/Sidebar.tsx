@@ -6,6 +6,7 @@ import { TagChip } from "./components/TagChip";
 import { CommentEditModal } from "./components/CommentEditModal";
 import { TagManagementModal } from "./components/TagManagementModal";
 import { PdfOverlayToggle } from "./components/PdfOverlayToggle";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { databaseService, type Tag } from "./services/database";
 
 interface Props {
@@ -327,15 +328,22 @@ export function Sidebar({
   }, [highlights, highlightTags, selectedTags]);
 
   return (
-    <div className="sidebar" style={{ width: "25vw" }}>
+    <div className="sidebar" style={{ 
+      width: "25vw", 
+      backgroundColor: "var(--bg-primary)",
+      color: "var(--text-primary)"
+    }}>
       <div className="description" style={{ padding: "1rem" }}>
-        <h2 style={{ marginBottom: "1rem" }}>
+        <h2 style={{ 
+          marginBottom: "1rem",
+          color: "var(--text-primary)"
+        }}>
           react-pdf-highlighter {APP_VERSION}
         </h2>
 
 
         <p>
-          <small>
+          <small style={{ color: "var(--text-secondary)" }}>
             To create area highlight hold ⌥ Option key (Alt), then click and
             drag. Right-click highlights to manage tags. Press Ctrl+T to quickly tag the first highlight.
           </small>
@@ -350,8 +358,8 @@ export function Sidebar({
           style={{ 
             width: "100%",
             padding: "0.75rem",
-            backgroundColor: "#007acc",
-            color: "white",
+            backgroundColor: "var(--accent-color)",
+            color: "var(--bg-primary)",
             border: "none",
             borderRadius: "6px",
             fontSize: "14px",
@@ -360,23 +368,41 @@ export function Sidebar({
             transition: "background-color 0.2s"
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#005fa3";
+            e.currentTarget.style.backgroundColor = "var(--accent-hover)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#007acc";
+            e.currentTarget.style.backgroundColor = "var(--accent-color)";
           }}
         >
           Show All PDFs
         </button>
         
-        {/* PDF Dark Overlay Toggle */}
-        <PdfOverlayToggle />
+        {/* Theme Controls Row */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          marginTop: '8px',
+          alignItems: 'flex-start'
+        }}>
+          {/* UI Theme Toggle */}
+          <ThemeToggle />
+          
+          {/* PDF Dark Overlay Toggle */}
+          <div style={{ flex: 1 }}>
+            <PdfOverlayToggle />
+          </div>
+        </div>
       </div>
 
       {/* Tag Filter Section */}
       {availableTags.length > 0 && (
-        <div style={{ padding: "1rem", borderBottom: "1px solid #e5e7eb" }}>
-          <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "14px", fontWeight: "600" }}>
+        <div style={{ padding: "1rem", borderBottom: "1px solid var(--border-primary)" }}>
+          <h3 style={{ 
+            margin: "0 0 0.5rem 0", 
+            fontSize: "14px", 
+            fontWeight: "600",
+            color: "var(--text-primary)"
+          }}>
             Filter by Tags ({selectedTags.length} selected)
           </h3>
           
@@ -391,15 +417,18 @@ export function Sidebar({
                 width: "100%",
                 padding: "6px 30px 6px 8px",
                 fontSize: "13px",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--border-primary)",
                 borderRadius: "4px",
                 outline: "none",
+                backgroundColor: "var(--bg-secondary)",
+                color: "var(--text-primary)",
+                transition: "border-color 0.2s ease",
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#60a5fa";
+                e.target.style.borderColor = "var(--accent-color)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "#d1d5db";
+                e.target.style.borderColor = "var(--border-primary)";
               }}
             />
             {tagSearchQuery && (
@@ -416,13 +445,14 @@ export function Sidebar({
                   cursor: "pointer",
                   padding: "4px",
                   fontSize: "14px",
-                  color: "#6b7280",
+                  color: "var(--text-secondary)",
+                  transition: "color 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#374151";
+                  e.currentTarget.style.color = "var(--text-primary)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#6b7280";
+                  e.currentTarget.style.color = "var(--text-secondary)";
                 }}
               >
                 ✕
@@ -470,9 +500,9 @@ export function Sidebar({
                   padding: "4px 12px",
                   fontSize: "12px",
                   fontWeight: "500",
-                  color: "#4b5563",
-                  backgroundColor: "#f3f4f6",
-                  border: "1px solid #d1d5db",
+                  color: "var(--text-primary)",
+                  backgroundColor: "var(--bg-secondary)",
+                  border: "1px solid var(--border-primary)",
                   borderRadius: "12px",
                   cursor: "pointer",
                   transition: "all 0.2s",
@@ -480,12 +510,12 @@ export function Sidebar({
                   height: "24px",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#e5e7eb";
-                  e.currentTarget.style.borderColor = "#9ca3af";
+                  e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+                  e.currentTarget.style.borderColor = "var(--text-tertiary)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                  e.currentTarget.style.borderColor = "#d1d5db";
+                  e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  e.currentTarget.style.borderColor = "var(--border-primary)";
                 }}
                 title={showAllTags ? "Show less tags" : `Show ${hiddenTagsCount} more tags`}
               >
@@ -509,7 +539,7 @@ export function Sidebar({
             <div style={{ 
               marginTop: "8px", 
               fontSize: "12px", 
-              color: "#6b7280",
+              color: "var(--text-secondary)",
               fontStyle: "italic" 
             }}>
               No tags match "{tagSearchQuery}"
@@ -521,7 +551,7 @@ export function Sidebar({
             <div style={{ 
               marginTop: "8px", 
               fontSize: "12px", 
-              color: "#6b7280" 
+              color: "var(--text-secondary)" 
             }}>
               Showing {filteredTags.length} of {availableTags.length} tags
             </div>
@@ -536,9 +566,18 @@ export function Sidebar({
                     padding: "4px 8px",
                     fontSize: "12px",
                     background: "none",
-                    border: "1px solid #d1d5db",
+                    border: "1px solid var(--border-primary)",
                     borderRadius: "4px",
                     cursor: "pointer",
+                    color: "var(--text-primary)",
+                    backgroundColor: "var(--bg-secondary)",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                 >
                   Clear Filters
@@ -603,7 +642,7 @@ export function Sidebar({
       </ul>
       
       {filteredHighlights.length === 0 && highlights.length > 0 && (
-        <div style={{ padding: "1rem", textAlign: "center", color: "#6b7280" }}>
+        <div style={{ padding: "1rem", textAlign: "center", color: "var(--text-secondary)" }}>
           No highlights match the selected tags.
         </div>
       )}
