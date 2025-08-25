@@ -89,10 +89,10 @@ export function TagAutocomplete({
 
   // Handle input focus
   const handleInputFocus = () => {
-    if (value.length === 0) {
-      debouncedFetchSuggestions('');
-    } else {
-      setShowSuggestions(suggestions.length > 0);
+    // Only show existing suggestions if the field has content
+    // Don't automatically load suggestions for empty fields
+    if (value.length > 0 && suggestions.length > 0) {
+      setShowSuggestions(true);
     }
   };
 
