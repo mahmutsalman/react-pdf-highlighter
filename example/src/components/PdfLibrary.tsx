@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PdfCard } from "./PdfCard";
+import { SortingDropdown, type SortOption } from "./SortingDropdown";
+import { ThemeToggle } from "./ThemeToggle";
 import { databaseService, type PdfRecord } from "../services/database";
 
 interface PdfLibraryProps {
@@ -12,16 +14,21 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = localStorage.getItem('pdf-library-sort');
+    return (saved as SortOption) || 'lastOpened';
+  });
 
   useEffect(() => {
     loadPdfs();
-  }, []);
+  }, [sortBy]);
 
   const loadPdfs = async () => {
     try {
       setLoading(true);
       setError(null);
-      const pdfList = await databaseService.getPdfsWithHighlightCounts();
+      const sortMode = sortBy === 'name' ? 'name' : 'lastOpened';
+      const pdfList = await databaseService.getPdfsWithHighlightCounts(sortMode);
       setPdfs(pdfList);
     } catch (err) {
       console.error("Error loading PDFs:", err);
@@ -29,6 +36,11 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSortChange = (newSort: SortOption) => {
+    setSortBy(newSort);
+    localStorage.setItem('pdf-library-sort', newSort);
   };
 
   const handleDeletePdf = async (pdfId: number) => {
@@ -51,7 +63,16 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center" }}>
+      <div style={{ 
+        padding: "2rem", 
+        textAlign: "center",
+        backgroundColor: "var(--bg-primary)",
+        color: "var(--text-primary)",
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
         <div>Loading your PDF library...</div>
       </div>
     );
@@ -59,18 +80,36 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
 
   if (error) {
     return (
-      <div style={{ padding: "2rem", textAlign: "center", color: "#dc3545" }}>
-        <div>{error}</div>
+      <div style={{ 
+        padding: "2rem", 
+        textAlign: "center", 
+        color: "var(--danger-color)",
+        backgroundColor: "var(--bg-primary)",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center"
+      }}>
+        <div style={{ marginBottom: "1rem" }}>{error}</div>
         <button
           onClick={loadPdfs}
           style={{
-            marginTop: "1rem",
             padding: "0.5rem 1rem",
-            backgroundColor: "#007acc",
-            color: "white",
+            backgroundColor: "var(--accent-color)",
+            color: "var(--bg-primary)",
             border: "none",
-            borderRadius: "4px",
+            borderRadius: "6px",
             cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "500",
+            transition: "background-color 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--accent-hover)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "var(--accent-color)";
           }}
         >
           Retry
@@ -80,13 +119,19 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
   }
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ 
+      height: "100vh", 
+      display: "flex", 
+      flexDirection: "column",
+      backgroundColor: "var(--bg-primary)",
+      color: "var(--text-primary)"
+    }}>
       {/* Header */}
       <div
         style={{
           padding: "1rem",
-          borderBottom: "1px solid #e0e0e0",
-          backgroundColor: "#f8f9fa",
+          borderBottom: "1px solid var(--border-primary)",
+          backgroundColor: "var(--bg-secondary)",
         }}
       >
         <div
@@ -97,50 +142,89 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
             marginBottom: "1rem",
           }}
         >
-          <h1 style={{ margin: 0, fontSize: "1.5rem", color: "#333" }}>
+          <h1 style={{ margin: 0, fontSize: "1.5rem", color: "var(--text-primary)" }}>
             PDF Library
           </h1>
-          <button
-            onClick={onBackToViewer}
-            style={{
-              padding: "0.5rem 1rem",
-              backgroundColor: "#6c757d",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Back to Viewer
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <ThemeToggle />
+            <button
+              onClick={onBackToViewer}
+              style={{
+                padding: "0.5rem 1rem",
+                backgroundColor: "var(--text-secondary)",
+                color: "var(--bg-primary)",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--text-secondary)";
+              }}
+            >
+              Back to Viewer
+            </button>
+          </div>
         </div>
 
-        {/* Search bar */}
-        <div style={{ position: "relative" }}>
-          <input
-            type="text"
-            placeholder="Search PDFs by name or path..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              border: "1px solid #ddd",
-              borderRadius: "4px",
-              fontSize: "1rem",
-              boxSizing: "border-box",
-            }}
+        {/* Controls row with search and sorting */}
+        <div style={{ 
+          display: "flex", 
+          gap: "12px", 
+          alignItems: "flex-end", 
+          marginBottom: "8px" 
+        }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Search PDFs by name or path..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid var(--border-primary)",
+                borderRadius: "6px",
+                fontSize: "1rem",
+                boxSizing: "border-box",
+                backgroundColor: "var(--bg-primary)",
+                color: "var(--text-primary)",
+                transition: "border-color 0.2s ease",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "var(--accent-color)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "var(--border-primary)";
+              }}
+            />
+          </div>
+          <SortingDropdown 
+            value={sortBy}
+            onChange={handleSortChange}
           />
         </div>
 
         <div
           style={{
-            marginTop: "0.5rem",
             fontSize: "0.9rem",
-            color: "#666",
+            color: "var(--text-secondary)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          {filteredPdfs.length} PDF{filteredPdfs.length !== 1 ? "s" : ""} found
+          <span>
+            {filteredPdfs.length} PDF{filteredPdfs.length !== 1 ? "s" : ""} found
+          </span>
+          <span style={{ fontSize: "0.8rem" }}>
+            {sortBy === 'name' ? '📋 Static order' : '🕒 Recently opened first'}
+          </span>
         </div>
       </div>
 
@@ -157,7 +241,7 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
             style={{
               textAlign: "center",
               padding: "3rem",
-              color: "#666",
+              color: "var(--text-secondary)",
               fontSize: "1.1rem",
             }}
           >
@@ -168,11 +252,20 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
                   onClick={() => setSearchQuery("")}
                   style={{
                     padding: "0.5rem 1rem",
-                    backgroundColor: "#007acc",
-                    color: "white",
+                    backgroundColor: "var(--accent-color)",
+                    color: "var(--bg-primary)",
                     border: "none",
-                    borderRadius: "4px",
+                    borderRadius: "6px",
                     cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "background-color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--accent-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--accent-color)";
                   }}
                 >
                   Clear Search
@@ -181,7 +274,9 @@ export function PdfLibrary({ onOpenPdf, onBackToViewer }: PdfLibraryProps) {
             ) : (
               <div>
                 <p>No PDFs in your library yet.</p>
-                <p>Open a PDF file to automatically add it to your library.</p>
+                <p style={{ color: "var(--text-tertiary)" }}>
+                  Open a PDF file to automatically add it to your library.
+                </p>
               </div>
             )}
           </div>

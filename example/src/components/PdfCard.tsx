@@ -34,13 +34,13 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
       className="pdf-card"
       onClick={handleOpenPdf}
       style={{
-        border: "1px solid #e0e0e0",
+        border: "1px solid var(--border-primary)",
         borderRadius: "8px",
         padding: "1rem",
         margin: "0.5rem",
         cursor: "pointer",
-        backgroundColor: "#fff",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        backgroundColor: "var(--bg-secondary)",
+        boxShadow: "var(--card-shadow)",
         transition: "all 0.2s ease",
         minHeight: "120px",
         display: "flex",
@@ -49,11 +49,11 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.15)";
+        e.currentTarget.style.boxShadow = "var(--card-shadow-hover)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+        e.currentTarget.style.boxShadow = "var(--card-shadow)";
       }}
     >
       <div>
@@ -62,7 +62,7 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
             margin: "0 0 0.5rem 0",
             fontSize: "1.1rem",
             fontWeight: "600",
-            color: "#333",
+            color: "var(--text-primary)",
             wordBreak: "break-word",
           }}
         >
@@ -72,7 +72,7 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
           style={{
             margin: "0 0 0.5rem 0",
             fontSize: "0.8rem",
-            color: "#666",
+            color: "var(--text-secondary)",
             wordBreak: "break-all",
           }}
         >
@@ -91,7 +91,7 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
           <div
             style={{
               fontSize: "0.75rem",
-              color: "#888",
+              color: "var(--text-tertiary)",
               marginBottom: "0.25rem",
             }}
           >
@@ -100,7 +100,7 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
           <div
             style={{
               fontSize: "0.75rem",
-              color: "#007acc",
+              color: "var(--accent-color)",
               fontWeight: "500",
             }}
           >
@@ -113,7 +113,7 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
           style={{
             background: "none",
             border: "none",
-            color: "#dc3545",
+            color: "var(--danger-color)",
             cursor: "pointer",
             padding: "0.25rem",
             borderRadius: "4px",
@@ -123,9 +123,10 @@ export function PdfCard({ pdf, onOpenPdf, onDeletePdf }: PdfCardProps) {
             justifyContent: "center",
             width: "28px",
             height: "28px",
+            transition: "background-color 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#f8d7da";
+            e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = "transparent";

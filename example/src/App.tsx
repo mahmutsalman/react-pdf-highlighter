@@ -22,6 +22,7 @@ import { Spinner } from "./Spinner";
 import { PdfLibrary } from "./components/PdfLibrary";
 import { testHighlights as _testHighlights } from "./test-highlights";
 import { databaseService, type PdfRecord } from "./services/database";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import "./style/App.css";
 import "../../dist/style.css";
@@ -377,15 +378,18 @@ export function App() {
 
   if (appState === 'library') {
     return (
-      <PdfLibrary
-        onOpenPdf={openPdfFromLibrary}
-        onBackToViewer={backToViewer}
-      />
+      <ThemeProvider>
+        <PdfLibrary
+          onOpenPdf={openPdfFromLibrary}
+          onBackToViewer={backToViewer}
+        />
+      </ThemeProvider>
     );
   }
 
   return (
-    <div className="App" style={{ display: "flex", height: "100vh" }}>
+    <ThemeProvider>
+      <div className="App" style={{ display: "flex", height: "100vh" }}>
       <Sidebar
         highlights={highlights}
         resetHighlights={resetHighlights}
@@ -481,5 +485,6 @@ export function App() {
         </PdfLoader>
       </div>
     </div>
+    </ThemeProvider>
   );
 }

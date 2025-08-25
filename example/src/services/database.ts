@@ -625,8 +625,13 @@ class DatabaseService {
     return result;
   }
 
-  async getPdfsWithHighlightCounts(): Promise<(PdfRecord & { highlight_count: number })[]> {
+  async getPdfsWithHighlightCounts(sortBy: 'name' | 'lastOpened' = 'lastOpened'): Promise<(PdfRecord & { highlight_count: number })[]> {
     await this.ensureInitialized();
+    
+    const orderByClause = sortBy === 'name' 
+      ? 'ORDER BY p.name ASC' 
+      : 'ORDER BY p.last_opened DESC';
+    
     const result = await this.db!.select<(PdfRecord & { highlight_count: number })[]>(
       `SELECT p.*, COALESCE(h.highlight_count, 0) as highlight_count
        FROM pdfs p
@@ -635,7 +640,7 @@ class DatabaseService {
          FROM highlights
          GROUP BY pdf_id
        ) h ON p.id = h.pdf_id
-       ORDER BY p.last_opened DESC`
+       ${orderByClause}`
     );
     return result;
   }
