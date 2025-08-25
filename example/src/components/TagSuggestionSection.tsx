@@ -26,7 +26,16 @@ export function TagSuggestionSection({
 }: TagSuggestionSectionProps) {
   // Helper function to format time difference
   const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
+    // Parse the date string - if it doesn't have timezone info, treat it as UTC
+    let date = new Date(dateString);
+    
+    // If the date string doesn't include 'Z' or timezone offset, it might be local time
+    // Check if it's a valid ISO string with timezone
+    if (!dateString.includes('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+      // If no timezone indicator, assume it's UTC and add 'Z'
+      date = new Date(dateString + 'Z');
+    }
+    
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
