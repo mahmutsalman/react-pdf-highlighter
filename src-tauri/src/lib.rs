@@ -101,12 +101,21 @@ pub fn run() {
     },
   ];
 
+  // Determine database name based on build configuration
+  let db_name = if cfg!(debug_assertions) {
+    "sqlite:pdf_highlighter_dev.db"
+  } else {
+    "sqlite:pdf_highlighter.db"
+  };
+
+  println!("🗃️ Using database: {}", db_name);
+
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
     .plugin(tauri_plugin_fs::init())
     .plugin(
       tauri_plugin_sql::Builder::default()
-        .add_migrations("sqlite:pdf_highlighter.db", migrations)
+        .add_migrations(db_name, migrations)
         .build(),
     )
     .setup(|app| {

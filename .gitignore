@@ -1,38 +1,152 @@
-node_modules
-.DS_Store
-dist
-*.local
-types
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist/
+.turbo/
+
+# Runtime generated files
+types/
+.cache/
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Testing
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-.idea/
-localResources/
-*.db
-*.db-journal
+coverage/
+.nyc_output/
+*.lcov
 
-# Environment files
-.env.docker
+# Environment variables
+.env
 .env.local
 .env.development
 .env.production
+.env.test
+.env.docker
+*.local
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # Runtime state files
 dev-ports.json
 
-# Docker files
-Dockerfile
-docker-compose.yml
-docker-compose.*.yml
+# Local development resources
+localResources/
+
+# Design and documentation files (project-specific)
+design/
+ICON_SYSTEM.md
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE and Editors
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.sublime-workspace
+.sublime-project
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+*.bak
+*.backup
+
+# Package manager
+.npm
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Tauri specific
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+# Tauri build artifacts
+*.dmg
+*.app
+*.exe
+*.msi
+*.deb
+*.rpm
+*.AppImage
+
+# TypeScript
+*.tsbuildinfo
+.tsbuildinfo
+
+# Vite
+.vite-inspect/
+
+# Biome
+.biome-cache/
+
+# ESLint
+.eslintcache
+
+# Playwright
+playwright/.cache/
+
+# Storybook
+storybook-static/
+
+# Docker and containerization
+Docker*
+docker-compose*.yml
 .dockerignore
 
-# Shell scripts
+# Development and utility scripts (exclude root-level scripts, keep scripts/ directory)
 *.sh
-docker-dev.sh
-docker-dev-stop.sh
-docker-desktop.sh
-tauri-with-port.sh
-test-hybrid-mode.sh
-start-app.sh
-stop-app.sh
+!scripts/
+!scripts/*.sh
+
+# Generated icon files (keep source icons, ignore generated ones)
+src-tauri/icons/
+!src-tauri/icons/icon.png
+!src-tauri/icons/icon.ico
+!src-tauri/icons/icon.icns
+
+# Production config files (if they contain sensitive data)
+src-tauri/tauri.conf.prod.json

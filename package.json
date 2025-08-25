@@ -34,6 +34,7 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "tauri:build:prod": "tauri build --config src-tauri/tauri.conf.prod.json",
     "web:dev": "vite build && (cd ./example && vite)",
     "docker:dev": "./docker-dev.sh",
     "docker:desktop": "./docker-desktop.sh",
