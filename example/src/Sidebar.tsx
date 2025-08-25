@@ -260,6 +260,10 @@ export function Sidebar({
         return newMap;
       });
 
+      // Add small delay to ensure database transactions are fully committed
+      // This prevents race condition where tag relationships might not be visible yet
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Invalidate cache and reload available tags in case new ones were created
       setTagsCache(null);
       await loadAvailableTags();
