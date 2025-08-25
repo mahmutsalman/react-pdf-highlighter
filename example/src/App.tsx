@@ -23,6 +23,7 @@ import { PdfLibrary } from "./components/PdfLibrary";
 import { testHighlights as _testHighlights } from "./test-highlights";
 import { databaseService, type PdfRecord } from "./services/database";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { PdfOverlayProvider } from "./contexts/PdfOverlayContext";
 
 import "./style/App.css";
 import "../../dist/style.css";
@@ -31,6 +32,7 @@ import "./style/TagModal.css";
 import "./style/TagAutocomplete.css";
 import "./style/HighlightContextMenu.css";
 import "./style/CommentEditModal.css";
+import "./style/PdfOverlay.css";
 
 const testHighlights: Record<string, Array<IHighlight>> = _testHighlights;
 
@@ -379,17 +381,20 @@ export function App() {
   if (appState === 'library') {
     return (
       <ThemeProvider>
-        <PdfLibrary
-          onOpenPdf={openPdfFromLibrary}
-          onBackToViewer={backToViewer}
-        />
+        <PdfOverlayProvider>
+          <PdfLibrary
+            onOpenPdf={openPdfFromLibrary}
+            onBackToViewer={backToViewer}
+          />
+        </PdfOverlayProvider>
       </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider>
-      <div className="App" style={{ display: "flex", height: "100vh" }}>
+      <PdfOverlayProvider>
+        <div className="App" style={{ display: "flex", height: "100vh" }}>
       <Sidebar
         highlights={highlights}
         resetHighlights={resetHighlights}
@@ -485,6 +490,7 @@ export function App() {
         </PdfLoader>
       </div>
     </div>
+      </PdfOverlayProvider>
     </ThemeProvider>
   );
 }

@@ -5,6 +5,7 @@ import { TagModal } from "./components/TagModal";
 import { TagChip } from "./components/TagChip";
 import { CommentEditModal } from "./components/CommentEditModal";
 import { TagManagementModal } from "./components/TagManagementModal";
+import { PdfOverlayToggle } from "./components/PdfOverlayToggle";
 import { databaseService, type Tag } from "./services/database";
 
 interface Props {
@@ -367,6 +368,9 @@ export function Sidebar({
         >
           Show All PDFs
         </button>
+        
+        {/* PDF Dark Overlay Toggle */}
+        <PdfOverlayToggle />
       </div>
 
       {/* Tag Filter Section */}

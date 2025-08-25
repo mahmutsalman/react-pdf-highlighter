@@ -1,0 +1,96 @@
+/* PDF Dark Overlay Styles */
+
+.pdf-dark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, var(--pdf-overlay-opacity, 0));
+  pointer-events: none;
+  z-index: 1; /* Above canvas, below highlights (z-index: 3) */
+  transition: opacity 0.3s ease;
+  display: var(--pdf-overlay-display, none);
+}
+
+/* Ensure overlay covers the entire canvas area */
+.pdfViewer .canvasWrapper {
+  position: relative;
+}
+
+/* Style for the range slider in PdfOverlayToggle */
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  cursor: pointer;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  cursor: pointer;
+  border: 2px solid var(--bg-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Hide the track outline on Firefox */
+input[type="range"]::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+input[type="range"]:focus {
+  outline: none;
+}
+
+/* Smooth transition for overlay opacity changes */
+.pdf-dark-overlay.transitioning {
+  transition: opacity 0.5s ease;
+}
+
+/* Special handling for when overlay is being toggled */
+.pdf-overlay-enabled .pdf-dark-overlay {
+  display: block;
+  opacity: var(--pdf-overlay-opacity, 0.3);
+}
+
+.pdf-overlay-disabled .pdf-dark-overlay {
+  display: none;
+  opacity: 0;
+}
+
+/* Ensure overlays don't interfere with PDF interactions */
+.pdf-dark-overlay,
+.pdf-dark-overlay * {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Visual feedback when overlay is being adjusted */
+@keyframes overlay-pulse {
+  0% { opacity: var(--pdf-overlay-opacity, 0.3); }
+  50% { opacity: calc(var(--pdf-overlay-opacity, 0.3) * 1.2); }
+  100% { opacity: var(--pdf-overlay-opacity, 0.3); }
+}
+
+.pdf-dark-overlay.adjusting {
+  animation: overlay-pulse 0.5s ease-in-out;
+}
+
+/* Responsive design for overlay toggle */
+@media (max-width: 768px) {
+  .pdf-overlay-toggle {
+    padding: 0.5rem;
+  }
+  
+  .pdf-overlay-toggle button {
+    font-size: 13px;
+  }
+}

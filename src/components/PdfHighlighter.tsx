@@ -373,6 +373,7 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
 
   onTextLayerRendered = () => {
     this.renderHighlightLayers();
+    this.injectPdfOverlays();
   };
 
   scrollTo = (highlight: T_HT) => {
@@ -415,6 +416,11 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     const { scrollRef } = this.props;
 
     this.handleScaleValue();
+    
+    // Inject overlays with a slight delay to ensure canvas elements are ready
+    setTimeout(() => {
+      this.injectPdfOverlays();
+    }, 100);
 
     scrollRef(this.scrollTo);
   };
@@ -553,6 +559,41 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
   };
 
   debouncedScaleValue: () => void = debounce(this.handleScaleValue, 500);
+
+  injectPdfOverlays = () => {
+    // Skip if viewer is not ready
+    if (!this.viewer || !this.viewer.viewer) {
+      return;
+    }
+
+    // Find all canvas wrappers and inject overlay divs
+    const canvasWrappers = this.viewer.viewer.querySelectorAll('.canvasWrapper');
+    
+    canvasWrappers.forEach((wrapper: Element) => {
+      // Check if overlay already exists
+      const existingOverlay = wrapper.querySelector('.pdf-dark-overlay');
+      if (existingOverlay) {
+        return; // Overlay already exists
+      }
+
+      // Create overlay element
+      const overlay = document.createElement('div');
+      overlay.className = 'pdf-dark-overlay';
+      overlay.style.position = 'absolute';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.background = 'rgba(0, 0, 0, var(--pdf-overlay-opacity, 0))';
+      overlay.style.pointerEvents = 'none';
+      overlay.style.zIndex = '1';
+      overlay.style.transition = 'opacity 0.3s ease';
+      overlay.style.display = 'var(--pdf-overlay-display, none)';
+
+      // Insert overlay into canvas wrapper
+      wrapper.appendChild(overlay);
+    });
+  };
 
   render() {
     const { onSelectionFinished, enableAreaSelection } = this.props;
