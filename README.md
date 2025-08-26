@@ -1,17 +1,62 @@
-☕️ [Buy me a coffee](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=SC4D2NS8G2JJ8&source=url)
+# PDF Highlighter with Backend Integration 🚀
 
-![Node CI](https://github.com/agentcooper/react-pdf-highlighter/workflows/Node%20CI/badge.svg)
+**Enhanced PDF annotation application with full-stack capabilities and native desktop support.**
 
-# react-pdf-highlighter
+*Built upon the excellent [react-pdf-highlighter](https://github.com/agentcooper/react-pdf-highlighter) by [@agentcooper](https://github.com/agentcooper) - significantly enhanced with backend functionality and modern development stack.*
 
-Set of React components for PDF annotation.
+## ✨ Enhanced Features
 
-Features:
-
+### 🎯 **Original Features** (from react-pdf-highlighter)
 - Built on top of PDF.js
 - Text and image highlights
 - Popover text for highlights
 - Scroll to highlights
+
+### 🚀 **My Backend & Infrastructure Enhancements**
+- **🦀 Rust Backend Integration** - High-performance backend with Tauri
+- **🖥️ Native Desktop Application** - Cross-platform desktop app
+- **🐳 Complete Docker Development Environment** - Isolated, consistent development
+- **⚙️ Advanced Build System** - Modern toolchain with hot reloading
+- **🔄 Hybrid Development Modes** - Web, desktop, and containerized options
+- **📦 Professional Project Structure** - Enterprise-ready organization
+- **🛡️ Enhanced Security & Performance** - Native app benefits with web flexibility
+
+## 🎯 Why This Fork?
+
+This version transforms the original React component library into a **complete, production-ready PDF annotation application** with:
+- Full-stack architecture
+- Native desktop performance  
+- Professional development workflow
+- Enhanced user experience
+
+## 🛠️ Development Journey
+
+This project represents months of development work to transform a React component library into a full-featured application:
+- Started with the solid foundation of react-pdf-highlighter
+- Added complete Rust backend integration with Tauri
+- Implemented professional Docker development workflow
+- Enhanced with native desktop capabilities
+- Built comprehensive development documentation and guides
+
+## 📦 Quick Start
+
+### Native Desktop App (Recommended)
+```bash
+git clone https://github.com/mahmutsalman/react-pdf-highlighter.git
+cd react-pdf-highlighter
+npm install
+npm start
+# Launches native desktop application
+```
+
+### 🐳 Docker Development
+```bash
+# Hybrid mode - Docker backend + Native frontend (Best experience)
+npm run docker:desktop
+
+# Full web mode
+npm run docker:dev  # http://localhost:3003
+```
 
 ## Importing CSS
 
@@ -23,7 +68,7 @@ import "react-pdf-highlighter/dist/style.css";
 
 ## Example
 
-See demo https://agentcooper.github.io/react-pdf-highlighter/.
+Original demo: https://agentcooper.github.io/react-pdf-highlighter/ | **Enhanced version with backend features - try the native desktop app!**
 
 To run the example app locally:
 
@@ -86,4 +131,11 @@ npm install react-pdf-highlighter
 
 ## How to use
 
-See [`./example/src/App.tsx`](https://github.com/agentcooper/react-pdf-highlighter/blob/main/example/src/App.tsx) for the React component API example.
+See [`./example/src/App.tsx`](./example/src/App.tsx) for the React component API example with backend integration.
+
+## 🙏 Attribution
+
+This project builds upon the excellent work of [react-pdf-highlighter](https://github.com/agentcooper/react-pdf-highlighter) by [@agentcooper](https://github.com/agentcooper). The original component library provided a solid foundation which has been significantly enhanced with backend functionality and native desktop capabilities.
+
+**Original Repository**: https://github.com/agentcooper/react-pdf-highlighter  
+**This Enhanced Fork**: https://github.com/mahmutsalman/react-pdf-highlighter
