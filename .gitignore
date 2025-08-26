@@ -154,3 +154,24 @@ src-tauri/tauri.conf.prod.json
 # CCPM - Claude Code Project Management
 .claude/epics/
 .claude-backup/
+.claude/settings.local.json
+.claude/scripts/
+
+# Additional security and temporary files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.secrets/
+secrets/
+
+# Additional build artifacts
+*.tgz
+*.tar.gz
+.parcel-cache/
+.vscode/launch.json
+
+# System and editor specific
+.history/
+.vscode-test/
