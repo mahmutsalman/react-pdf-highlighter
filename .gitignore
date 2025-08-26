@@ -151,11 +151,18 @@ src-tauri/icons/
 # Production config files (if they contain sensitive data)
 src-tauri/tauri.conf.prod.json
 
-# CCPM - Claude Code Project Management
+# CCPM - Claude Code Project Management (Local Only)
+.claude/
+.claude-backup*/
+*.claude-backup*
+CLAUDE*.md
+.claude/commands/pm/
+.claude/agents/
+.claude/prds/
 .claude/epics/
-.claude-backup/
-.claude/settings.local.json
+.claude/context/
 .claude/scripts/
+.claude/CLAUDE-CCPM-REFERENCE.md
 
 # Additional security and temporary files
 *.pem
