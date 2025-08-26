@@ -150,3 +150,7 @@ src-tauri/icons/
 
 # Production config files (if they contain sensitive data)
 src-tauri/tauri.conf.prod.json
+
+# CCPM - Claude Code Project Management
+.claude/epics/
+.claude-backup/
