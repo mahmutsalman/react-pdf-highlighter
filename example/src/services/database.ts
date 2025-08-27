@@ -35,38 +35,20 @@ export interface HighlightTag {
 
 class DatabaseService {
   private db: Database | null = null;
-  private readonly isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
-  private readonly dbName = this.isDevelopment ? 'pdf_highlighter_dev.db' : 'pdf_highlighter.db';
+  // Use different database names for dev and prod to maintain separation
+  private readonly isProduction = import.meta.env.PROD;
+  private readonly dbName = this.isProduction ? 'pdf_highlighter.db' : 'pdf_highlighter_dev.db';
 
   async initialize(): Promise<void> {
     if (!this.db) {
       console.log('🏗️ DatabaseService: Initializing database connection...');
-      console.log(`📊 DatabaseService: Environment: ${this.isDevelopment ? 'Development' : 'Production'}`);
+      console.log(`📊 DatabaseService: Environment: ${this.isProduction ? 'Production' : 'Development'}`);
       console.log(`📁 DatabaseService: Database file: ${this.dbName}`);
       this.db = await Database.load(`sqlite:${this.dbName}`);
       console.log('✅ DatabaseService: Database connection established');
       
-      // Verify table existence
-      try {
-        const tables = await this.db.select("SELECT name FROM sqlite_master WHERE type='table'");
-        console.log('📊 DatabaseService: Available tables:', tables.map((t: any) => t.name));
-        
-        // Check if our tag tables exist
-        const tableNames = tables.map((t: any) => t.name);
-        if (tableNames.includes('tags')) {
-          console.log('✅ DatabaseService: Tags table exists');
-        } else {
-          console.log('❌ DatabaseService: Tags table missing!');
-        }
-        
-        if (tableNames.includes('highlight_tags')) {
-          console.log('✅ DatabaseService: Highlight_tags table exists');
-        } else {
-          console.log('❌ DatabaseService: Highlight_tags table missing!');
-        }
-      } catch (error) {
-        console.error('❌ DatabaseService: Error checking tables:', error);
-      }
+      // Validate database health
+      await this.validateDatabaseHealth();
     }
   }
 
@@ -644,6 +626,54 @@ class DatabaseService {
     );
     return result;
   }
+
+  // Database validation methods
+  private async validateDatabaseHealth(): Promise<void> {
+    try {
+      console.log('🔍 DatabaseService: Validating database health...');
+      
+      // Check table existence
+      const tables = await this.db!.select("SELECT name FROM sqlite_master WHERE type='table'");
+      const tableNames = tables.map((t: any) => t.name);
+      console.log('📊 DatabaseService: Available tables:', tableNames);
+      
+      const requiredTables = ['pdfs', 'highlights', 'tags', 'highlight_tags'];
+      const missingTables = requiredTables.filter(table => !tableNames.includes(table));
+      
+      if (missingTables.length > 0) {
+        console.warn('⚠️ DatabaseService: Missing tables:', missingTables);
+      } else {
+        console.log('✅ DatabaseService: All required tables exist');
+      }
+      
+      // Check data integrity
+      const pdfCount = await this.db!.select<{ count: number }[]>("SELECT COUNT(*) as count FROM pdfs");
+      const highlightCount = await this.db!.select<{ count: number }[]>("SELECT COUNT(*) as count FROM highlights");
+      const tagCount = await this.db!.select<{ count: number }[]>("SELECT COUNT(*) as count FROM tags");
+      const relationshipCount = await this.db!.select<{ count: number }[]>("SELECT COUNT(*) as count FROM highlight_tags");
+      
+      console.log('📈 DatabaseService: Data summary:');
+      console.log(`  • ${pdfCount[0]?.count || 0} PDFs`);
+      console.log(`  • ${highlightCount[0]?.count || 0} highlights`);
+      console.log(`  • ${tagCount[0]?.count || 0} tags`);
+      console.log(`  • ${relationshipCount[0]?.count || 0} highlight-tag relationships`);
+      
+      // Check for orphaned data
+      const orphanedHighlights = await this.db!.select<{ count: number }[]>(
+        "SELECT COUNT(*) as count FROM highlights h LEFT JOIN pdfs p ON h.pdf_id = p.id WHERE p.id IS NULL"
+      );
+      
+      if (orphanedHighlights[0]?.count > 0) {
+        console.warn(`⚠️ DatabaseService: Found ${orphanedHighlights[0].count} orphaned highlights (PDFs missing)`);
+      }
+      
+      console.log('✅ DatabaseService: Database health check completed');
+      
+    } catch (error) {
+      console.error('❌ DatabaseService: Database health check failed:', error);
+    }
+  }
+
 }
 
 export const databaseService = new DatabaseService();

@@ -116,7 +116,7 @@ pub fn run() {
     },
   ];
 
-  // Determine database name based on build configuration
+  // Use different database names for dev and prod to maintain separation
   let db_name = if cfg!(debug_assertions) {
     "sqlite:pdf_highlighter_dev.db"
   } else {
@@ -124,6 +124,13 @@ pub fn run() {
   };
 
   println!("🗃️ Using database: {}", db_name);
+  println!("📁 Database will be stored in Tauri app data directory");
+  
+  if cfg!(debug_assertions) {
+    println!("🔍 Development mode: Using dev database for development data");
+  } else {
+    println!("🚀 Production mode: Using prod database for production data");
+  }
 
   tauri::Builder::default()
     .plugin(tauri_plugin_dialog::init())
