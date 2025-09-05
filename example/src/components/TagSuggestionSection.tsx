@@ -50,10 +50,10 @@ export function TagSuggestionSection({
     return `${diffWeeks}w ago`;
   };
 
-  // Filter out tags that are already selected
-  const availableTags = tags.filter(item => 
-    !existingTags.some(existing => existing.id === item.tag.id)
-  );
+  // Check if a tag is already selected instead of filtering out
+  const isTagAlreadySelected = (tagId: number): boolean => {
+    return existingTags.some(existing => existing.id === tagId);
+  };
 
   // Get rank indicator color based on position
   const getRankColor = (index: number): string => {
@@ -69,41 +69,50 @@ export function TagSuggestionSection({
       </div>
       
       <div className="tag-suggestion-section__content">
-        {availableTags.length === 0 ? (
+        {tags.length === 0 ? (
           <div className="tag-suggestion-section__empty">
-            {tags.length === 0 ? 'No tags available' : 'All tags already selected'}
+            No tags available
           </div>
         ) : (
           <div className="tag-suggestion-section__list">
-            {availableTags.slice(0, 6).map((item, index) => (
-              <button
-                key={item.tag.id}
-                className="tag-suggestion-section__item"
-                onClick={() => onSelectTag(item.tag)}
-                type="button"
-              >
-                <span 
-                  className="tag-suggestion-section__rank"
-                  style={{ backgroundColor: getRankColor(index) }}
+            {tags.slice(0, 6).map((item, index) => {
+              const isUsed = isTagAlreadySelected(item.tag.id);
+              return (
+                <button
+                  key={item.tag.id}
+                  className={`tag-suggestion-section__item ${isUsed ? 'tag-suggestion-section__item--used' : ''}`}
+                  onClick={() => !isUsed && onSelectTag(item.tag)}
+                  disabled={isUsed}
+                  type="button"
+                  title={isUsed ? 'Tag already applied to this highlight' : `Add "${item.tag.name}" tag`}
                 >
-                  {index + 1}
-                </span>
-                
-                <span className="tag-suggestion-section__name">
-                  {item.tag.name}
-                </span>
-                
-                {type === 'most-used' ? (
-                  <span className="tag-suggestion-section__badge">
-                    {item.metadata}
+                  <span 
+                    className="tag-suggestion-section__rank"
+                    style={{ backgroundColor: getRankColor(index) }}
+                  >
+                    {index + 1}
                   </span>
-                ) : (
-                  <span className="tag-suggestion-section__time">
-                    {formatTimeAgo(item.metadata as string)}
+                  
+                  <span className="tag-suggestion-section__name">
+                    {item.tag.name}
                   </span>
-                )}
-              </button>
-            ))}
+                  
+                  {isUsed ? (
+                    <span className="tag-suggestion-section__used-indicator">
+                      ✓
+                    </span>
+                  ) : type === 'most-used' ? (
+                    <span className="tag-suggestion-section__badge">
+                      {item.metadata}
+                    </span>
+                  ) : (
+                    <span className="tag-suggestion-section__time">
+                      {formatTimeAgo(item.metadata as string)}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
