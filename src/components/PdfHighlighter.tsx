@@ -49,6 +49,8 @@ interface State<T_HT> {
   tipChildren: JSX.Element | null;
   isAreaSelectionInProgress: boolean;
   scrolledToHighlightId: string;
+  zoomLevel: number;
+  showZoomIndicator: boolean;
 }
 
 interface Props<T_HT> {
@@ -80,6 +82,13 @@ interface Props<T_HT> {
 }
 
 const EMPTY_ID = "empty-id";
+const ZOOM_CONSTANTS = {
+  MIN_ZOOM: 0.5,
+  MAX_ZOOM: 4.0,
+  ZOOM_STEP: 0.1,
+  DEFAULT_ZOOM: 1.0,
+  ZOOM_INDICATOR_TIMEOUT: 2000,
+};
 
 export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
   Props<T_HT>,
@@ -98,6 +107,8 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     tip: null,
     tipPosition: null,
     tipChildren: null,
+    zoomLevel: 1.0,
+    showZoomIndicator: false,
   };
 
   viewer!: PDFViewer;
@@ -109,6 +120,7 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     [page: number]: { reactRoot: Root; container: Element };
   } = {};
   unsubscribe = () => {};
+  zoomIndicatorTimeout: NodeJS.Timeout | null = null;
 
   constructor(props: Props<T_HT>) {
     super(props);
@@ -116,6 +128,18 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
       this.resizeObserver = new ResizeObserver(this.debouncedScaleValue);
     }
     this.containerNodeRef = React.createRef();
+    
+    // Initialize zoom level from localStorage
+    const savedZoom = localStorage.getItem('pdfHighlighterZoom');
+    if (savedZoom) {
+      const parsedZoom = parseFloat(savedZoom);
+      if (parsedZoom >= ZOOM_CONSTANTS.MIN_ZOOM && parsedZoom <= ZOOM_CONSTANTS.MAX_ZOOM) {
+        this.state = {
+          ...this.state,
+          zoomLevel: parsedZoom,
+        };
+      }
+    }
   }
 
   componentDidMount() {
@@ -133,6 +157,7 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
       eventBus.on("pagesinit", this.onDocumentReady);
       doc.addEventListener("selectionchange", this.onSelectionChange);
       doc.addEventListener("keydown", this.handleKeyDown);
+      doc.addEventListener("wheel", this.handleWheel, { passive: false });
       doc.defaultView?.addEventListener("resize", this.debouncedScaleValue);
       if (observer) observer.observe(this.containerNode);
 
@@ -141,6 +166,7 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
         eventBus.off("textlayerrendered", this.onTextLayerRendered);
         doc.removeEventListener("selectionchange", this.onSelectionChange);
         doc.removeEventListener("keydown", this.handleKeyDown);
+        doc.removeEventListener("wheel", this.handleWheel);
         doc.defaultView?.removeEventListener(
           "resize",
           this.debouncedScaleValue,
@@ -191,10 +217,23 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     this.viewer.setDocument(pdfDocument);
 
     this.attachRef(eventBus);
+    
+    // Apply saved zoom level after viewer is initialized
+    if (this.state.zoomLevel !== ZOOM_CONSTANTS.DEFAULT_ZOOM) {
+      setTimeout(() => {
+        if (this.viewer) {
+          this.viewer.currentScaleValue = this.state.zoomLevel.toString();
+        }
+      }, 100);
+    }
   }
 
   componentWillUnmount() {
     this.unsubscribe();
+    // Clean up zoom indicator timeout
+    if (this.zoomIndicatorTimeout) {
+      clearTimeout(this.zoomIndicatorTimeout);
+    }
   }
 
   findOrCreateHighlightLayer(page: number) {
@@ -490,6 +529,65 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
     if (event.code === "Escape") {
       this.hideTipAndSelection();
     }
+    
+    // Handle zoom reset with Cmd+0 (or Ctrl+0 on Windows)
+    if ((event.metaKey || event.ctrlKey) && event.key === '0') {
+      event.preventDefault();
+      this.resetZoom();
+    }
+  };
+
+  handleWheel = (event: WheelEvent) => {
+    // Only handle zoom when Cmd key (Mac) or Ctrl key (Windows) is pressed
+    if (!(event.metaKey || event.ctrlKey)) {
+      return;
+    }
+
+    event.preventDefault();
+    
+    const delta = event.deltaY;
+    const zoomDirection = delta < 0 ? 1 : -1; // Scroll up = zoom in, scroll down = zoom out
+    
+    this.adjustZoom(zoomDirection * ZOOM_CONSTANTS.ZOOM_STEP);
+  };
+
+  adjustZoom = (delta: number) => {
+    const newZoom = Math.min(
+      ZOOM_CONSTANTS.MAX_ZOOM,
+      Math.max(ZOOM_CONSTANTS.MIN_ZOOM, this.state.zoomLevel + delta)
+    );
+    
+    if (newZoom !== this.state.zoomLevel) {
+      this.setZoomLevel(newZoom);
+    }
+  };
+
+  setZoomLevel = (zoomLevel: number) => {
+    this.setState({ zoomLevel, showZoomIndicator: true }, () => {
+      // Apply the zoom to the PDF viewer
+      if (this.viewer) {
+        this.viewer.currentScaleValue = zoomLevel.toString();
+      }
+      
+      // Save to localStorage
+      localStorage.setItem('pdfHighlighterZoom', zoomLevel.toString());
+      
+      // Auto-hide zoom indicator after timeout
+      if (this.zoomIndicatorTimeout) {
+        clearTimeout(this.zoomIndicatorTimeout);
+      }
+      
+      this.zoomIndicatorTimeout = setTimeout(() => {
+        this.setState({ showZoomIndicator: false });
+      }, ZOOM_CONSTANTS.ZOOM_INDICATOR_TIMEOUT);
+      
+      // Re-render highlight layers after zoom change
+      this.renderHighlightLayers();
+    });
+  };
+
+  resetZoom = () => {
+    this.setZoomLevel(ZOOM_CONSTANTS.DEFAULT_ZOOM);
   };
 
   afterSelection = () => {
@@ -554,7 +652,11 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
 
   handleScaleValue = () => {
     if (this.viewer) {
-      this.viewer.currentScaleValue = this.props.pdfScaleValue; //"page-width";
+      // Use zoom level if available, otherwise fall back to pdfScaleValue prop
+      const scaleValue = this.state.zoomLevel && this.state.zoomLevel !== ZOOM_CONSTANTS.DEFAULT_ZOOM 
+        ? this.state.zoomLevel.toString()
+        : this.props.pdfScaleValue;
+      this.viewer.currentScaleValue = scaleValue;
     }
   };
 
@@ -607,6 +709,7 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
         >
           <div className="pdfViewer" />
           {this.renderTip()}
+          {this.renderZoomIndicator()}
           {typeof enableAreaSelection === "function" ? (
             <MouseSelection
               onDragStart={() => this.toggleTextSelection(true)}
@@ -678,6 +781,22 @@ export class PdfHighlighter<T_HT extends IHighlight> extends PureComponent<
       </div>
     );
   }
+
+  renderZoomIndicator = () => {
+    const { showZoomIndicator, zoomLevel } = this.state;
+    
+    if (!showZoomIndicator) {
+      return null;
+    }
+
+    const percentage = Math.round(zoomLevel * 100);
+    
+    return (
+      <div className={styles.zoomIndicator}>
+        {percentage}%
+      </div>
+    );
+  };
 
   private renderHighlightLayers() {
     const { pdfDocument } = this.props;
