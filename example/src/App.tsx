@@ -78,6 +78,36 @@ export function App() {
     initializeDatabase();
   }, []);
 
+  // Restore last opened book on app startup
+  useEffect(() => {
+    const restoreLastBook = async () => {
+      try {
+        // Database should already be initialized from the first useEffect
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure database is ready
+        
+        const lastBookId = localStorage.getItem('lastOpenedBookId');
+        if (lastBookId) {
+          const pdfId = parseInt(lastBookId, 10);
+          const pdf = await databaseService.getPdfById(pdfId);
+          if (pdf) {
+            console.log('🔄 Restoring last opened book:', pdf.name);
+            await openPdf(pdf.path, pdf.name);
+            return;
+          }
+        }
+        
+        // If no last book found, show library
+        setAppState('library');
+      } catch (error) {
+        console.error('Failed to restore last book:', error);
+        setAppState('library');
+      }
+    };
+    
+    // Delay restoration to ensure database is initialized
+    setTimeout(restoreLastBook, 500);
+  }, []);
+
   const initializeDatabase = async () => {
     try {
       await databaseService.initialize();
@@ -95,6 +125,55 @@ export function App() {
       url === PRIMARY_PDF_URL ? SECONDARY_PDF_URL : PRIMARY_PDF_URL;
     setUrl(newUrl);
     setHighlights(testHighlights[newUrl] ? [...testHighlights[newUrl]] : []);
+  };
+
+  // Unified openPdf function that saves state and opens the PDF
+  const openPdf = async (filePath: string, fileName: string) => {
+    console.log("📖 Opening PDF:", fileName, "from path:", filePath);
+    
+    try {
+      // First, check if the file exists
+      const fileExists = await exists(filePath);
+      if (!fileExists) {
+        console.warn("❌ File does not exist at path:", filePath);
+        throw new Error(`File not found: ${fileName}`);
+      }
+      
+      // Read the file
+      const fileData = await readFile(filePath);
+      const blob = new Blob([fileData], { type: "application/pdf" });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Handle database operations
+      let pdfRecord = await databaseService.getPdfByPath(filePath);
+      if (!pdfRecord) {
+        console.log("➕ Adding new PDF to database...");
+        const pdfId = await databaseService.addPdf(fileName, filePath);
+        pdfRecord = { id: pdfId, name: fileName, path: filePath, date_added: new Date().toISOString(), last_opened: new Date().toISOString() };
+      } else {
+        console.log("🔄 Updating last opened time for existing PDF...");
+        await databaseService.updatePdfLastOpened(pdfRecord.id);
+      }
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('lastOpenedBookId', pdfRecord.id.toString());
+      console.log('💾 Saved last opened book ID:', pdfRecord.id);
+      
+      // Load existing highlights
+      const existingHighlights = await databaseService.getHighlightsForPdf(pdfRecord.id);
+      console.log("🎨 Loaded highlights:", existingHighlights.length);
+      
+      // Update app state
+      setUrl(blobUrl);
+      setCurrentPdfId(pdfRecord.id);
+      setHighlights(existingHighlights);
+      setAppState('viewer');
+      
+      console.log("✅ PDF opened successfully");
+    } catch (error) {
+      console.error("❌ Error opening PDF:", error);
+      throw error; // Re-throw to be handled by callers
+    }
   };
 
   const openLocalFile = async () => {
@@ -116,7 +195,9 @@ export function App() {
         const normalizedPath = filePath.trim();
         console.log("📂 Normalized path:", normalizedPath);
         
-        await openPdfFromPath(normalizedPath);
+        // Extract filename from path
+        const fileName = normalizedPath.split(/[\\/]/).pop() || "Unknown PDF";
+        await openPdf(normalizedPath, fileName);
       }
     } catch (error) {
       console.error("❌ Error in openLocalFile:", error);
@@ -124,60 +205,9 @@ export function App() {
   };
 
   const openPdfFromPath = async (filePath: string) => {
-    console.log("🔍 Attempting to open PDF from path:", filePath);
-    
     try {
-      // First, check if the file exists
-      console.log("📁 Checking if file exists...");
-      const fileExists = await exists(filePath);
-      console.log("📁 File exists:", fileExists);
-      
-      if (!fileExists) {
-        console.warn("❌ File does not exist at path:", filePath);
-        const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
-        throw new Error(`File not found: ${fileName}`);
-      }
-      
-      // Try to read the file
-      console.log("📖 Reading file data...");
-      const fileData = await readFile(filePath);
-      console.log("📖 File data loaded, size:", fileData.length, "bytes");
-      
-      const blob = new Blob([fileData], { type: "application/pdf" });
-      const fileUrl = URL.createObjectURL(blob);
-      console.log("🔗 Created blob URL:", fileUrl);
-      
-      // Extract filename from path
       const fileName = filePath.split(/[\\/]/).pop() || "Unknown PDF";
-      console.log("📝 Extracted filename:", fileName);
-      
-      // Check if PDF already exists in database
-      console.log("🗄️ Checking database for existing PDF record...");
-      let pdfRecord = await databaseService.getPdfByPath(filePath);
-      
-      if (!pdfRecord) {
-        console.log("➕ Adding new PDF to database...");
-        const pdfId = await databaseService.addPdf(fileName, filePath);
-        pdfRecord = { id: pdfId, name: fileName, path: filePath, date_added: new Date().toISOString(), last_opened: new Date().toISOString() };
-        console.log("✅ PDF added to database with ID:", pdfId);
-      } else {
-        console.log("🔄 Updating last opened time for existing PDF...");
-        await databaseService.updatePdfLastOpened(pdfRecord.id);
-        console.log("✅ Last opened time updated");
-      }
-      
-      // Load existing highlights for this PDF
-      console.log("🎨 Loading existing highlights...");
-      const existingHighlights = await databaseService.getHighlightsForPdf(pdfRecord.id);
-      console.log("🎨 Loaded", existingHighlights.length, "highlights");
-      
-      // Update application state
-      setUrl(fileUrl);
-      setCurrentPdfId(pdfRecord.id);
-      setHighlights(existingHighlights);
-      setAppState('viewer');
-      console.log("✅ PDF opened successfully");
-      
+      await openPdf(filePath, fileName);
     } catch (error) {
       console.error("❌ Error opening PDF:", error);
       
@@ -370,10 +400,10 @@ export function App() {
   const openPdfFromLibrary = async (pdf: PdfRecord) => {
     console.log("📚 Opening PDF from library:", pdf.name, "at path:", pdf.path);
     try {
-      await openPdfFromPath(pdf.path);
+      await openPdf(pdf.path, pdf.name);
     } catch (error) {
       console.error("❌ Error opening PDF from library:", error);
-      // The openPdfFromPath function already handles errors and shows appropriate messages
+      // The openPdf function already handles errors and shows appropriate messages
       // No need to show additional alert here
     }
   };

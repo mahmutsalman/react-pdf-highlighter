@@ -7,6 +7,7 @@ interface TagManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTagsDeleted: () => void;
+  currentPdfId?: number;
 }
 
 interface TagWithUsage {
@@ -18,6 +19,7 @@ export function TagManagementModal({
   isOpen,
   onClose,
   onTagsDeleted,
+  currentPdfId,
 }: TagManagementModalProps) {
   const [tags, setTags] = useState<TagWithUsage[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<Set<number>>(new Set());
@@ -26,8 +28,9 @@ export function TagManagementModal({
   const [error, setError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showGlobalTags, setShowGlobalTags] = useState(false);
 
-  // Load tags with usage counts when modal opens
+  // Load tags with usage counts when modal opens or toggle changes
   useEffect(() => {
     if (isOpen) {
       loadTags();
@@ -37,14 +40,25 @@ export function TagManagementModal({
       setError(null);
       setShowConfirmDialog(false);
       setSearchQuery("");
+      setShowGlobalTags(false);
     }
-  }, [isOpen]);
+  }, [isOpen, showGlobalTags]);
 
   const loadTags = async () => {
     try {
       setLoading(true);
       setError(null);
-      const tagsWithUsage = await databaseService.getTagsWithUsageCount();
+      
+      let tagsWithUsage: { tag: Tag; usageCount: number }[];
+      
+      if (showGlobalTags || !currentPdfId) {
+        // Load global tags
+        tagsWithUsage = await databaseService.getTagsWithUsageCount();
+      } else {
+        // Load book-specific tags
+        tagsWithUsage = await databaseService.getTagsWithUsageCountForBook(currentPdfId);
+      }
+      
       setTags(tagsWithUsage);
     } catch (err) {
       console.error('Error loading tags:', err);
@@ -216,6 +230,23 @@ export function TagManagementModal({
                   )}
                 </div>
               </div>
+
+              {/* Tag Scope Toggle */}
+              {currentPdfId && (
+                <div className="tag-management-modal__scope-toggle">
+                  <label className="tag-management-modal__toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={showGlobalTags}
+                      onChange={(e) => setShowGlobalTags(e.target.checked)}
+                      className="tag-management-modal__toggle-checkbox"
+                    />
+                    <span className="tag-management-modal__toggle-text">
+                      {showGlobalTags ? 'Showing all tags' : 'Showing tags for this book only'}
+                    </span>
+                  </label>
+                </div>
+              )}
 
               {/* Controls */}
               <div className="tag-management-modal__controls">

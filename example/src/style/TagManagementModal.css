@@ -656,3 +656,38 @@
     flex-direction: column-reverse;
   }
 }
+
+/* Tag Scope Toggle */
+.tag-management-modal__scope-toggle {
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 12px;
+}
+
+.tag-management-modal__toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.tag-management-modal__toggle-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.tag-management-modal__toggle-text {
+  font-weight: 500;
+}
+
+/* Dark mode for toggle */
+@media (prefers-color-scheme: dark) {
+  .tag-management-modal__scope-toggle {
+    border-bottom-color: #374151;
+  }
+  
+  .tag-management-modal__toggle-label {
+    color: #d1d5db;
+  }
+}

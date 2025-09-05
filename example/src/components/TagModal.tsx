@@ -60,19 +60,38 @@ export function TagModal({ isOpen, onClose, onSave, highlight }: TagModalProps) 
 
   const loadTagSuggestions = async () => {
     try {
-      // Load most used tags
-      const mostUsed = await databaseService.getMostUsedTags(6);
-      setMostUsedTags(mostUsed.map(item => ({
-        tag: item.tag,
-        metadata: item.usageCount
-      })));
+      // Get the PDF ID from the current highlight
+      const pdfId = await databaseService.getPdfIdFromHighlight(highlight.id);
+      
+      if (pdfId) {
+        // Load most used tags for this book
+        const mostUsed = await databaseService.getMostUsedTagsForBook(pdfId, 6);
+        setMostUsedTags(mostUsed.map(item => ({
+          tag: item.tag,
+          metadata: item.usageCount
+        })));
 
-      // Load recently used tags
-      const recentlyUsed = await databaseService.getRecentlyUsedTags(6);
-      setRecentlyUsedTags(recentlyUsed.map(item => ({
-        tag: item.tag,
-        metadata: item.lastUsedAt
-      })));
+        // Load recently used tags for this book
+        const recentlyUsed = await databaseService.getRecentlyUsedTagsForBook(pdfId, 6);
+        setRecentlyUsedTags(recentlyUsed.map(item => ({
+          tag: item.tag,
+          metadata: item.lastUsedAt
+        })));
+      } else {
+        // Fallback to global tags if we can't get the PDF ID
+        console.warn('Could not get PDF ID for highlight, falling back to global tags');
+        const mostUsed = await databaseService.getMostUsedTags(6);
+        setMostUsedTags(mostUsed.map(item => ({
+          tag: item.tag,
+          metadata: item.usageCount
+        })));
+
+        const recentlyUsed = await databaseService.getRecentlyUsedTags(6);
+        setRecentlyUsedTags(recentlyUsed.map(item => ({
+          tag: item.tag,
+          metadata: item.lastUsedAt
+        })));
+      }
     } catch (error) {
       console.error('Error loading tag suggestions:', error);
       // Don't show error to user as suggestions are optional

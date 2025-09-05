@@ -102,6 +102,15 @@ class DatabaseService {
     );
   }
 
+  async getPdfById(id: number): Promise<PdfRecord | null> {
+    await this.ensureInitialized();
+    const result = await this.db!.select<PdfRecord[]>(
+      "SELECT * FROM pdfs WHERE id = ?",
+      [id]
+    );
+    return result.length > 0 ? result[0] : null;
+  }
+
   async deletePdf(id: number): Promise<void> {
     await this.ensureInitialized();
     await this.db!.execute("DELETE FROM pdfs WHERE id = ?", [id]);
@@ -456,6 +465,45 @@ class DatabaseService {
     return result;
   }
 
+  // Get PDF ID from highlight ID
+  async getPdfIdFromHighlight(highlightId: string): Promise<number | null> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<{ pdf_id: number }[]>(
+        `SELECT pdf_id FROM highlights WHERE highlight_id = ?`,
+        [highlightId]
+      );
+      return result.length > 0 ? result[0].pdf_id : null;
+    } catch (error) {
+      console.warn('Warning: Could not get PDF ID from highlight:', error);
+      return null;
+    }
+  }
+
+  // Get tags with usage counts for a specific book
+  async getTagsWithUsageCountForBook(pdfId: number): Promise<{ tag: Tag; usageCount: number }[]> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<(Tag & { usage_count: number })[]>(
+        `SELECT t.*, COUNT(DISTINCT ht.highlight_id) as usage_count
+         FROM tags t
+         INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+         INNER JOIN highlights h ON ht.highlight_id = h.highlight_id
+         WHERE h.pdf_id = ?
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY usage_count DESC, t.name ASC`,
+        [pdfId]
+      );
+      return result.map(row => ({
+        tag: { id: row.id, name: row.name, created_at: row.created_at },
+        usageCount: row.usage_count
+      }));
+    } catch (error) {
+      console.warn('Warning: Could not fetch tags with usage count for book:', error);
+      return [];
+    }
+  }
+
   async getHighlightsByTag(tagId: number, pdfId?: number): Promise<IHighlight[]> {
     await this.ensureInitialized();
     let query = `
@@ -592,6 +640,77 @@ class DatabaseService {
         }));
       } catch (fallbackError) {
         console.warn('Warning: Fallback for recently used tags also failed:', fallbackError);
+        return [];
+      }
+    }
+  }
+
+  // Per-book tag methods (for book-specific tag suggestions)
+  // Get most used tags for a specific book
+  async getMostUsedTagsForBook(pdfId: number, limit: number = 6): Promise<{ tag: Tag; usageCount: number }[]> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<(Tag & { usage_count: number })[]>(
+        `SELECT t.*, COUNT(DISTINCT ht.highlight_id) as usage_count
+         FROM tags t
+         INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+         INNER JOIN highlights h ON ht.highlight_id = h.highlight_id
+         WHERE h.pdf_id = ?
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY usage_count DESC, t.name ASC
+         LIMIT ?`,
+        [pdfId, limit]
+      );
+      return result.map(row => ({
+        tag: { id: row.id, name: row.name, created_at: row.created_at },
+        usageCount: row.usage_count
+      }));
+    } catch (error) {
+      console.warn('Warning: Could not fetch most used tags for book:', error);
+      return [];
+    }
+  }
+
+  // Get recently used tags for a specific book
+  async getRecentlyUsedTagsForBook(pdfId: number, limit: number = 6): Promise<{ tag: Tag; lastUsedAt: string }[]> {
+    await this.ensureInitialized();
+    try {
+      const result = await this.db!.select<(Tag & { last_used_at: string })[]>(
+        `SELECT DISTINCT t.*, MAX(tuh.used_at) as last_used_at
+         FROM tags t
+         INNER JOIN tag_usage_history tuh ON t.id = tuh.tag_id
+         INNER JOIN highlights h ON tuh.highlight_id = h.highlight_id
+         WHERE h.pdf_id = ?
+         GROUP BY t.id, t.name, t.created_at
+         ORDER BY last_used_at DESC
+         LIMIT ?`,
+        [pdfId, limit]
+      );
+      return result.map(row => ({
+        tag: { id: row.id, name: row.name, created_at: row.created_at },
+        lastUsedAt: row.last_used_at
+      }));
+    } catch (error) {
+      console.warn('Warning: Could not fetch recently used tags for book (tag_usage_history table may not exist yet):', error);
+      // Fallback to using created_at from highlight_tags
+      try {
+        const fallbackResult = await this.db!.select<(Tag & { last_used_at: string })[]>(
+          `SELECT DISTINCT t.*, MAX(h.created_at) as last_used_at
+           FROM tags t
+           INNER JOIN highlight_tags ht ON t.id = ht.tag_id
+           INNER JOIN highlights h ON ht.highlight_id = h.highlight_id
+           WHERE h.pdf_id = ?
+           GROUP BY t.id, t.name, t.created_at
+           ORDER BY last_used_at DESC
+           LIMIT ?`,
+          [pdfId, limit]
+        );
+        return fallbackResult.map(row => ({
+          tag: { id: row.id, name: row.name, created_at: row.created_at },
+          lastUsedAt: row.last_used_at
+        }));
+      } catch (fallbackError) {
+        console.warn('Warning: Fallback for recently used tags for book also failed:', fallbackError);
         return [];
       }
     }

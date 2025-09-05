@@ -698,6 +698,7 @@ export function Sidebar({
         isOpen={tagManagementModal.isOpen}
         onClose={handleCloseTagManagement}
         onTagsDeleted={handleTagsDeleted}
+        currentPdfId={currentPdfId}
       />
     </div>
   );
